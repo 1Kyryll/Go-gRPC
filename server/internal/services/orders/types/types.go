@@ -14,6 +14,7 @@ type CreateOrderResult struct {
 
 type OrderService interface {
 	CreateOrder(context.Context, *orders.Order) (*CreateOrderResult, error)
+	CompleteOrder(context.Context, int32) error
 	GetOrders(context.Context, int32) ([]*orders.Order, error)
 	GetTicketsByOrderID(context.Context, int32) ([]sqlc.Ticket, error)
 	Subscribe(context.Context) chan *orders.Order

@@ -35,6 +35,15 @@ export default function KitchenPage() {
     };
   }, []);
 
+  async function handleDone(orderId: number) {
+    const res = await fetch(`http://localhost:8080/order/${orderId}/done`, {
+      method: "POST",
+    });
+    if (res.ok) {
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center gap-3 mb-6">
@@ -62,11 +71,17 @@ export default function KitchenPage() {
                 Customer {order.customer_id}
               </span>
             </div>
-            <ul className="list-disc list-inside text-gray-700">
+            <ul className="list-disc list-inside text-gray-700 mb-3">
               {order.items.map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
             </ul>
+            <button
+              onClick={() => handleDone(order.id)}
+              className="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              Done
+            </button>
           </div>
         ))}
       </div>

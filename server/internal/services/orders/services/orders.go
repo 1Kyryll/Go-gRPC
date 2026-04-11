@@ -92,6 +92,13 @@ func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*ord
 	return result, nil
 }
 
+func (s *OrdersService) CompleteOrder(ctx context.Context, orderID int32) error {
+	if err := s.queries.CompleteTicketByOrderID(ctx, orderID); err != nil {
+		return err
+	}
+	return s.queries.CompleteOrder(ctx, orderID)
+}
+
 func (s *OrdersService) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]sqlc.Ticket, error) {
 	return s.queries.GetTicketsByOrderID(ctx, orderID)
 }

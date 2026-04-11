@@ -11,6 +11,26 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const completeOrder = `-- name: CompleteOrder :exec
+UPDATE orders SET status = 'completed', updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) CompleteOrder(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, completeOrder, id)
+	return err
+}
+
+const completeTicketByOrderID = `-- name: CompleteTicketByOrderID :exec
+UPDATE tickets SET status = 'done', updated_at = NOW()
+WHERE order_id = $1
+`
+
+func (q *Queries) CompleteTicketByOrderID(ctx context.Context, orderID int32) error {
+	_, err := q.db.Exec(ctx, completeTicketByOrderID, orderID)
+	return err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (customer_id, items, status)
 VALUES ($1, $2, $3)

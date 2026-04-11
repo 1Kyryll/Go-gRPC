@@ -20,6 +20,7 @@ func NewOrdersHTTPHandler(ordersService types.OrderService) *OrdersHTTPHandler {
 
 func (h *OrdersHTTPHandler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("/order/create", h.CreateOrder)
+	router.HandleFunc("POST /order/{orderId}/done", h.CompleteOrder)
 	router.HandleFunc("/ticket/{orderId}", h.GetTickets)
 }
 
@@ -47,6 +48,22 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 		"status":        result.Order.Status,
 		"ticket_status": result.TicketStatus,
 	})
+}
+
+func (h *OrdersHTTPHandler) CompleteOrder(w http.ResponseWriter, r *http.Request) {
+	orderID, err := strconv.Atoi(r.PathValue("orderId"))
+	if err != nil {
+		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))
+		return
+	}
+
+	err = h.ordersService.CompleteOrder(r.Context(), int32(orderID))
+	if err != nil {
+		util.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, map[string]string{"status": "completed"})
 }
 
 func (h *OrdersHTTPHandler) GetTickets(w http.ResponseWriter, r *http.Request) {

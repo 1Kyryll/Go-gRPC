@@ -12,6 +12,14 @@ INSERT INTO tickets (order_id, status)
 VALUES ($1, $2)
 RETURNING status, created_at;
 
--- name: GetTicketsByOrderID :many 
+-- name: GetTicketsByOrderID :many
 SELECT * FROM tickets
-WHERE order_id = $1; 
+WHERE order_id = $1;
+
+-- name: CompleteTicketByOrderID :exec
+UPDATE tickets SET status = 'done', updated_at = NOW()
+WHERE order_id = $1;
+
+-- name: CompleteOrder :exec
+UPDATE orders SET status = 'completed', updated_at = NOW()
+WHERE id = $1;
