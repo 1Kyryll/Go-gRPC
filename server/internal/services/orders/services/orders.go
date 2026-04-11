@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"sync"
 
-	orders "github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/services/orders/types"
 )
 
 type OrdersService struct {
@@ -22,13 +23,13 @@ func NewOrdersService(queries *sqlc.Queries) *OrdersService {
 	}
 }
 
-func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*orders.Order, error) {
+func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*types.CreateOrderResult, error) {
 	itemsJSON, err := json.Marshal(order.Items)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
+	orderRow, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
 		CustomerID: order.CustomerId,
 		Items:      itemsJSON,
 		Status:     "pending",
@@ -37,9 +38,19 @@ func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*
 		return nil, err
 	}
 
-	order.Status = result.Status
+	order.Id = orderRow.ID
+	order.Status = orderRow.Status
 
-	// broadcast to subscribers
+	// Create a ticket for the kitchen
+	ticketRow, err := s.queries.CreateTicket(ctx, sqlc.CreateTicketParams{
+		OrderID: order.Id,
+		Status:  "open",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Broadcast order to kitchen subscribers
 	s.mu.Lock()
 	subs := make([]chan *orders.Order, 0, len(s.subscribers))
 	for ch := range s.subscribers {
@@ -54,7 +65,10 @@ func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*
 		}
 	}
 
-	return order, nil
+	return &types.CreateOrderResult{
+		Order:        order,
+		TicketStatus: ticketRow.Status,
+	}, nil
 }
 
 func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*orders.Order, error) {
@@ -76,6 +90,10 @@ func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*ord
 	}
 
 	return result, nil
+}
+
+func (s *OrdersService) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]sqlc.Ticket, error) {
+	return s.queries.GetTicketsByOrderID(ctx, orderID)
 }
 
 func (s *OrdersService) Subscribe(ctx context.Context) chan *orders.Order {

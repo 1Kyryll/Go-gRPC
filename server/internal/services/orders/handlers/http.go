@@ -20,7 +20,7 @@ func NewOrdersHTTPHandler(ordersService types.OrderService) *OrdersHTTPHandler {
 
 func (h *OrdersHTTPHandler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("/order/create", h.CreateOrder)
-	router.HandleFunc("/order/get/{id}", h.GetOrders)
+	router.HandleFunc("/ticket/{orderId}", h.GetTickets)
 }
 
 func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -32,36 +32,39 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 	}
 
 	order := &orders.Order{
-		Id:         1,
 		CustomerId: req.GetCustomerId(),
 		Items:      req.GetItems(),
 	}
 
-	_, err = h.ordersService.CreateOrder(r.Context(), order)
+	result, err := h.ordersService.CreateOrder(r.Context(), order)
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	res := &orders.CreateOrderResponse{Status: "Success"}
-	util.WriteJSON(w, http.StatusOK, res)
+	util.WriteJSON(w, http.StatusOK, map[string]any{
+		"order_id":      result.Order.Id,
+		"status":        result.Order.Status,
+		"ticket_status": result.TicketStatus,
+	})
 }
 
-func (h *OrdersHTTPHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	customerID, err := strconv.Atoi(r.PathValue("id"))
+func (h *OrdersHTTPHandler) GetTickets(w http.ResponseWriter, r *http.Request) {
+	orderID, err := strconv.Atoi(r.PathValue("orderId"))
 	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid customer ID: %v", err))
+		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))
 		return
 	}
 
-	ordersList, err := h.ordersService.GetOrders(r.Context(), int32(customerID))
+	tickets, err := h.ordersService.GetTicketsByOrderID(r.Context(), int32(orderID))
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if ordersList == nil {
-		ordersList = []*orders.Order{}
+	if tickets == nil {
+		util.WriteJSON(w, http.StatusOK, []struct{}{})
+		return
 	}
-	util.WriteJSON(w, http.StatusOK, ordersList)
+	util.WriteJSON(w, http.StatusOK, tickets)
 }

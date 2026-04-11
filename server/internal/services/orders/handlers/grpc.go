@@ -40,17 +40,16 @@ func (h *OrdersGrpcHandler) StreamCreatedOrders(
 
 func (h *OrdersGrpcHandler) CreateOrder(ctx context.Context, req *orders.CreateOrderRequest) (*orders.CreateOrderResponse, error) {
 	order := &orders.Order{
-		Id:         1,
 		CustomerId: req.CustomerId,
 		Items:      req.Items,
 	}
 
-	_, err := h.ordersService.CreateOrder(ctx, order)
+	result, err := h.ordersService.CreateOrder(ctx, order)
 	if err != nil {
 		return nil, err
 	}
 
-	return &orders.CreateOrderResponse{Status: "Success"}, nil
+	return &orders.CreateOrderResponse{Status: result.TicketStatus}, nil
 }
 
 func (h *OrdersGrpcHandler) GetOrders(ctx context.Context, req *orders.GetOrdersRequest) (*orders.GetOrdersResponse, error) {

@@ -1,0 +1,34 @@
+syntax = "proto3";
+package kitchen;
+option go_package = "github.com/1kyryll/go-grpc/internal/services/common/gen/kitchen";
+
+service TicketService {
+    rpc CreateTicket (CreateTicketRequest) returns (CreateTicketResponse);
+    rpc GetTicketsByOrderID (GetTicketsByOrderIDRequest) returns (GetTicketsByOrderIDResponse);
+}
+
+message Ticket { 
+    int32 id = 1;
+    int32 order_id = 2;
+    string status = 3;
+}
+
+message CreateTicketRequest {
+    int32 order_id = 1;
+}
+
+message CreateTicketResponse {
+    string status = 1;
+}
+
+message GetTicketsByOrderIDRequest {
+    int32 order_id = 1;
+}
+
+message GetTicketsByOrderIDResponse {
+    repeated Ticket tickets = 1;
+}
+
+
+
+

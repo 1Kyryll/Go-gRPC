@@ -14,7 +14,7 @@ import (
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (customer_id, items, status)
 VALUES ($1, $2, $3)
-RETURNING status, created_at
+RETURNING id, status, created_at
 `
 
 type CreateOrderParams struct {
@@ -24,6 +24,7 @@ type CreateOrderParams struct {
 }
 
 type CreateOrderRow struct {
+	ID        int32              `json:"id"`
 	Status    string             `json:"status"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
@@ -31,6 +32,29 @@ type CreateOrderRow struct {
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
 	row := q.db.QueryRow(ctx, createOrder, arg.CustomerID, arg.Items, arg.Status)
 	var i CreateOrderRow
+	err := row.Scan(&i.ID, &i.Status, &i.CreatedAt)
+	return i, err
+}
+
+const createTicket = `-- name: CreateTicket :one
+INSERT INTO tickets (order_id, status)
+VALUES ($1, $2)
+RETURNING status, created_at
+`
+
+type CreateTicketParams struct {
+	OrderID int32  `json:"order_id"`
+	Status  string `json:"status"`
+}
+
+type CreateTicketRow struct {
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (CreateTicketRow, error) {
+	row := q.db.QueryRow(ctx, createTicket, arg.OrderID, arg.Status)
+	var i CreateTicketRow
 	err := row.Scan(&i.Status, &i.CreatedAt)
 	return i, err
 }
@@ -53,6 +77,37 @@ func (q *Queries) GetOrders(ctx context.Context, customerID int32) ([]Order, err
 			&i.ID,
 			&i.CustomerID,
 			&i.Items,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTicketsByOrderID = `-- name: GetTicketsByOrderID :many
+SELECT id, order_id, status, created_at, updated_at FROM tickets
+WHERE order_id = $1
+`
+
+func (q *Queries) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]Ticket, error) {
+	rows, err := q.db.Query(ctx, getTicketsByOrderID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Ticket
+	for rows.Next() {
+		var i Ticket
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
