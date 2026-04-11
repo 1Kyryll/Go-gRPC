@@ -1,0 +1,7 @@
+node_modules/
+.next/
+types/
+.env*
+CLAUDE.md
+AGENTS.md
+.claude/

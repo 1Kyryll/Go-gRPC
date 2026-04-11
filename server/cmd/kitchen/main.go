@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -35,20 +36,30 @@ func main() {
 	svc := kitchenService.NewKitchenService(queries)
 
 	// Connect to Orders gRPC server
-	conn, err := grpc.NewClient(":9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcAddr := os.Getenv("ORDERS_GRPC_ADDR")
+	if grpcAddr == "" {
+		grpcAddr = ":9000"
+	}
+	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to Orders gRPC server: %v", err)
 	}
 	defer conn.Close()
 
 	client := orders.NewOrderServiceClient(conn)
-	log.Println("Kitchen connected to Orders service on :9000")
+	log.Printf("Kitchen connecting to Orders service on %s", grpcAddr)
 
-	stream, err := client.StreamCreatedOrders(context.Background(),
-		&orders.StreamCreatedOrdersRequest{})
-	if err != nil {
-		log.Fatalf("Failed to stream created orders: %v", err)
+	var stream orders.OrderService_StreamCreatedOrdersClient
+	for {
+		stream, err = client.StreamCreatedOrders(context.Background(),
+			&orders.StreamCreatedOrdersRequest{})
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for Orders gRPC server: %v", err)
+		time.Sleep(2 * time.Second)
 	}
+	log.Println("Kitchen connected to Orders stream")
 
 	// Create SSE server
 	sse := NewSSEServer()

@@ -8,7 +8,7 @@ type Ticket = {
 
 export default async function TicketPage({ params }: { params: Promise<{ orderId: string }> }) {
     const { orderId } = await params;
-    const res = await fetch(`http://localhost:8081/ticket/${orderId}`, { cache: "no-store" });
+    const res = await fetch(`http://kitchen:8081/ticket/${orderId}`, { cache: "no-store" });
     const tickets: Ticket[] = await res.json();
 
     return (

@@ -4,7 +4,7 @@ export default function CreateOrderPage() {
     const addOrderAction = async (formData: FormData) => {
         "use server";
 
-        const response = await fetch("http://localhost:8080/order/create", {
+        const response = await fetch("http://orders:8080/order/create", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

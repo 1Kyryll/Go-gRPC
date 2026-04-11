@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: Go-gRPC-DB
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  orders:
+    build:
+      context: ./server
+      dockerfile: cmd/orders/Dockerfile
+    container_name: Go-gRPC-Orders
+    environment:
+      GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
+    ports:
+      - "8080:8080"
+      - "9000:9000"
+    depends_on:
+      - postgres
+
+  kitchen:
+    build:
+      context: ./server
+      dockerfile: cmd/kitchen/Dockerfile
+    container_name: Go-gRPC-Kitchen
+    environment:
+      GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
+      ORDERS_GRPC_ADDR: orders:9000
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - orders
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: Go-gRPC-Client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - orders
+      - kitchen
+
+volumes:
+  postgres_data:
