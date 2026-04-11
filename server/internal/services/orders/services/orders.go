@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/orders"
+	orders "github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
 )
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/orders/types"
 	"github.com/1kyryll/go-grpc/internal/services/util"
 )
@@ -20,7 +20,7 @@ func NewOrdersHTTPHandler(ordersService types.OrderService) *OrdersHTTPHandler {
 
 func (h *OrdersHTTPHandler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("/order/create", h.CreateOrder)
-	router.HandleFunc("/order/get", h.GetOrders)
+	router.HandleFunc("/order/get/{id}", h.GetOrders)
 }
 
 func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -48,9 +48,9 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *OrdersHTTPHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	customerID, err := strconv.Atoi(r.URL.Query().Get("customer_id"))
+	customerID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid customer_id"))
+		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid customer ID: %v", err))
 		return
 	}
 
@@ -60,5 +60,8 @@ func (h *OrdersHTTPHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if ordersList == nil {
+		ordersList = []*orders.Order{}
+	}
 	util.WriteJSON(w, http.StatusOK, ordersList)
 }

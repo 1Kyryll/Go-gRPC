@@ -335,7 +335,7 @@ const file_orders_proto_rawDesc = "" +
 	"\fOrderService\x12F\n" +
 	"\vCreateOrder\x12\x1a.orders.CreateOrderRequest\x1a\x1b.orders.CreateOrderResponse\x12@\n" +
 	"\tGetOrders\x12\x18.orders.GetOrdersRequest\x1a\x19.orders.GetOrdersResponse\x12J\n" +
-	"\x13StreamCreatedOrders\x12\".orders.StreamCreatedOrdersRequest\x1a\r.orders.Order0\x01B0Z.github.com/1kyryll/go-grpc/services/gen/ordersb\x06proto3"
+	"\x13StreamCreatedOrders\x12\".orders.StreamCreatedOrdersRequest\x1a\r.orders.Order0\x01B@Z>github.com/1kyryll/go-grpc/internal/services/common/gen/ordersb\x06proto3"
 
 var (
 	file_orders_proto_rawDescOnce sync.Once
