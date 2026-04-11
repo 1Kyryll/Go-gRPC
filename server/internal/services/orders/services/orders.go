@@ -7,7 +7,6 @@ import (
 
 	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
-	"github.com/1kyryll/go-grpc/internal/services/orders/types"
 )
 
 type OrdersService struct {
@@ -23,7 +22,7 @@ func NewOrdersService(queries *sqlc.Queries) *OrdersService {
 	}
 }
 
-func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*types.CreateOrderResult, error) {
+func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*orders.Order, error) {
 	itemsJSON, err := json.Marshal(order.Items)
 	if err != nil {
 		return nil, err
@@ -41,15 +40,6 @@ func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*
 	order.Id = orderRow.ID
 	order.Status = orderRow.Status
 
-	// Create a ticket for the kitchen
-	ticketRow, err := s.queries.CreateTicket(ctx, sqlc.CreateTicketParams{
-		OrderID: order.Id,
-		Status:  "open",
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	// Broadcast order to kitchen subscribers
 	s.mu.Lock()
 	subs := make([]chan *orders.Order, 0, len(s.subscribers))
@@ -65,10 +55,7 @@ func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*
 		}
 	}
 
-	return &types.CreateOrderResult{
-		Order:        order,
-		TicketStatus: ticketRow.Status,
-	}, nil
+	return order, nil
 }
 
 func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*orders.Order, error) {
@@ -90,17 +77,6 @@ func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*ord
 	}
 
 	return result, nil
-}
-
-func (s *OrdersService) CompleteOrder(ctx context.Context, orderID int32) error {
-	if err := s.queries.CompleteTicketByOrderID(ctx, orderID); err != nil {
-		return err
-	}
-	return s.queries.CompleteOrder(ctx, orderID)
-}
-
-func (s *OrdersService) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]sqlc.Ticket, error) {
-	return s.queries.GetTicketsByOrderID(ctx, orderID)
 }
 
 func (s *OrdersService) Subscribe(ctx context.Context) chan *orders.Order {

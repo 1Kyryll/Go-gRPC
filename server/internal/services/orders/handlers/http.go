@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/orders/types"
@@ -20,8 +18,6 @@ func NewOrdersHTTPHandler(ordersService types.OrderService) *OrdersHTTPHandler {
 
 func (h *OrdersHTTPHandler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("/order/create", h.CreateOrder)
-	router.HandleFunc("POST /order/{orderId}/done", h.CompleteOrder)
-	router.HandleFunc("/ticket/{orderId}", h.GetTickets)
 }
 
 func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -44,44 +40,7 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 	}
 
 	util.WriteJSON(w, http.StatusOK, map[string]any{
-		"order_id":      result.Order.Id,
-		"status":        result.Order.Status,
-		"ticket_status": result.TicketStatus,
+		"order_id": result.Id,
+		"status":   result.Status,
 	})
-}
-
-func (h *OrdersHTTPHandler) CompleteOrder(w http.ResponseWriter, r *http.Request) {
-	orderID, err := strconv.Atoi(r.PathValue("orderId"))
-	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))
-		return
-	}
-
-	err = h.ordersService.CompleteOrder(r.Context(), int32(orderID))
-	if err != nil {
-		util.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteJSON(w, http.StatusOK, map[string]string{"status": "completed"})
-}
-
-func (h *OrdersHTTPHandler) GetTickets(w http.ResponseWriter, r *http.Request) {
-	orderID, err := strconv.Atoi(r.PathValue("orderId"))
-	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))
-		return
-	}
-
-	tickets, err := h.ordersService.GetTicketsByOrderID(r.Context(), int32(orderID))
-	if err != nil {
-		util.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if tickets == nil {
-		util.WriteJSON(w, http.StatusOK, []struct{}{})
-		return
-	}
-	util.WriteJSON(w, http.StatusOK, tickets)
 }

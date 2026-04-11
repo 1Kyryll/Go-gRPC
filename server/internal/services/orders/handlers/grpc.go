@@ -44,12 +44,12 @@ func (h *OrdersGrpcHandler) CreateOrder(ctx context.Context, req *orders.CreateO
 		Items:      req.Items,
 	}
 
-	result, err := h.ordersService.CreateOrder(ctx, order)
+	_, err := h.ordersService.CreateOrder(ctx, order)
 	if err != nil {
 		return nil, err
 	}
 
-	return &orders.CreateOrderResponse{Status: result.TicketStatus}, nil
+	return &orders.CreateOrderResponse{Status: "Success"}, nil
 }
 
 func (h *OrdersGrpcHandler) GetOrders(ctx context.Context, req *orders.GetOrdersRequest) (*orders.GetOrdersResponse, error) {

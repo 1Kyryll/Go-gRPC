@@ -36,7 +36,7 @@ export default function KitchenPage() {
   }, []);
 
   async function handleDone(orderId: number) {
-    const res = await fetch(`http://localhost:8080/order/${orderId}/done`, {
+    const res = await fetch(`http://localhost:8081/order/${orderId}/done`, {
       method: "POST",
     });
     if (res.ok) {

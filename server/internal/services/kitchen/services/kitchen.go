@@ -45,3 +45,14 @@ func (s *KitchenService) GetTickets(ctx context.Context, orderID int32) ([]*kitc
 
 	return result, nil
 }
+
+func (s *KitchenService) CompleteOrder(ctx context.Context, orderID int32) error {
+	if err := s.queries.CompleteTicketByOrderID(ctx, orderID); err != nil {
+		return err
+	}
+	return s.queries.CompleteOrder(ctx, orderID)
+}
+
+func (s *KitchenService) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]sqlc.Ticket, error) {
+	return s.queries.GetTicketsByOrderID(ctx, orderID)
+}
