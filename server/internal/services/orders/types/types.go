@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 
-	"github.com/1kyryll/go-grpc/services/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/orders"
 )
 
 type OrderService interface {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/1kyryll/go-grpc/services/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/orders"
 )
 
 var ordersDb = make([]*orders.Order, 0)

@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	handler "github.com/1kyryll/go-grpc/services/orders/handlers"
-	"github.com/1kyryll/go-grpc/services/orders/types"
+	handler "github.com/1kyryll/go-grpc/internal/services/orders/handlers"
+	"github.com/1kyryll/go-grpc/internal/services/orders/types"
 )
 
 type httpServer struct {

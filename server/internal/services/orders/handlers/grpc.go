@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 
-	"github.com/1kyryll/go-grpc/services/gen/orders"
-	"github.com/1kyryll/go-grpc/services/orders/types"
+	"github.com/1kyryll/go-grpc/internal/services/common/orders"
+	"github.com/1kyryll/go-grpc/internal/services/orders/types"
 	"google.golang.org/grpc"
 )
 

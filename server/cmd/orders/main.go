@@ -4,8 +4,8 @@ import (
 	"log"
 	"net"
 
-	handler "github.com/1kyryll/go-grpc/services/orders/handlers"
-	service "github.com/1kyryll/go-grpc/services/orders/services"
+	handler "github.com/1kyryll/go-grpc/internal/services/orders/handlers"
+	service "github.com/1kyryll/go-grpc/internal/services/orders/services"
 	"google.golang.org/grpc"
 )
 

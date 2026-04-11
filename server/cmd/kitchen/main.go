@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/1kyryll/go-grpc/services/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/orders"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

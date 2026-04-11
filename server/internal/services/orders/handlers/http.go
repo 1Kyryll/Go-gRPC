@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/1kyryll/go-grpc/services/gen/orders"
-	"github.com/1kyryll/go-grpc/services/orders/types"
-	"github.com/1kyryll/go-grpc/services/util"
+	"github.com/1kyryll/go-grpc/internal/services/common/orders"
+	"github.com/1kyryll/go-grpc/internal/services/orders/types"
+	"github.com/1kyryll/go-grpc/internal/services/util"
 )
 
 type OrdersHTTPHandler struct {
