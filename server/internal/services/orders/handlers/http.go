@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/1kyryll/go-grpc/internal/services/common/orders"
 	"github.com/1kyryll/go-grpc/internal/services/orders/types"
@@ -46,7 +48,13 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *OrdersHTTPHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	ordersList, err := h.ordersService.GetOrders(r.Context())
+	customerID, err := strconv.Atoi(r.URL.Query().Get("customer_id"))
+	if err != nil {
+		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid customer_id"))
+		return
+	}
+
+	ordersList, err := h.ordersService.GetOrders(r.Context(), int32(customerID))
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, err)
 		return

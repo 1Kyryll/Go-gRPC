@@ -54,7 +54,7 @@ func (h *OrdersGrpcHandler) CreateOrder(ctx context.Context, req *orders.CreateO
 }
 
 func (h *OrdersGrpcHandler) GetOrders(ctx context.Context, req *orders.GetOrdersRequest) (*orders.GetOrdersResponse, error) {
-	ordersList, err := h.ordersService.GetOrders(ctx)
+	ordersList, err := h.ordersService.GetOrders(ctx, req.CustomerId)
 	if err != nil {
 		return nil, err
 	}

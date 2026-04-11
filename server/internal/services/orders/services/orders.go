@@ -2,35 +2,51 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 
 	"github.com/1kyryll/go-grpc/internal/services/common/orders"
+	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
 )
-
-var ordersDb = make([]*orders.Order, 0)
 
 type OrdersService struct {
 	mu          sync.Mutex
+	queries     *sqlc.Queries
 	subscribers map[chan *orders.Order]struct{}
 }
 
-func NewOrdersService() *OrdersService {
+func NewOrdersService(queries *sqlc.Queries) *OrdersService {
 	return &OrdersService{
+		queries:     queries,
 		subscribers: make(map[chan *orders.Order]struct{}),
 	}
 }
 
 func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*orders.Order, error) {
-	s.mu.Lock()
-	ordersDb = append(ordersDb, order)
+	itemsJSON, err := json.Marshal(order.Items)
+	if err != nil {
+		return nil, err
+	}
 
+	result, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
+		CustomerID: order.CustomerId,
+		Items:      itemsJSON,
+		Status:     "pending",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	order.Status = result.Status
+
+	// broadcast to subscribers
+	s.mu.Lock()
 	subs := make([]chan *orders.Order, 0, len(s.subscribers))
 	for ch := range s.subscribers {
 		subs = append(subs, ch)
 	}
 	s.mu.Unlock()
 
-	//broadcast to subscribers
 	for _, ch := range subs {
 		select {
 		case ch <- order:
@@ -41,8 +57,25 @@ func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*
 	return order, nil
 }
 
-func (s *OrdersService) GetOrders(ctx context.Context) ([]*orders.Order, error) {
-	return ordersDb, nil
+func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*orders.Order, error) {
+	dbOrders, err := s.queries.GetOrders(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*orders.Order, len(dbOrders))
+	for i, o := range dbOrders {
+		var items []string
+		json.Unmarshal(o.Items, &items)
+		result[i] = &orders.Order{
+			Id:         o.ID,
+			CustomerId: o.CustomerID,
+			Items:      items,
+			Status:     o.Status,
+		}
+	}
+
+	return result, nil
 }
 
 func (s *OrdersService) Subscribe(ctx context.Context) chan *orders.Order {
