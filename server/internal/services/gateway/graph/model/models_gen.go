@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 )
 
 type MenuItem interface {
@@ -33,17 +32,6 @@ type CreateOrderPayload struct {
 	Order  *Order             `json:"order,omitempty"`
 	Errors []*ValidationError `json:"errors,omitempty"`
 }
-
-type Customer struct {
-	ID        string           `json:"id"`
-	Name      string           `json:"name"`
-	Email     string           `json:"email"`
-	Phone     *string          `json:"phone,omitempty"`
-	Orders    *OrderConnection `json:"orders"`
-	CreatedAt time.Time        `json:"createdAt"`
-}
-
-func (Customer) IsSearchResult() {}
 
 type DrinkItem struct {
 	ID          string       `json:"id"`
@@ -99,19 +87,6 @@ type MenuItemEdge struct {
 type Mutation struct {
 }
 
-type Order struct {
-	ID         string       `json:"id"`
-	Customer   *Customer    `json:"customer"`
-	Items      []*OrderItem `json:"items"`
-	Ticket     *Ticket      `json:"ticket,omitempty"`
-	TotalPrice float64      `json:"totalPrice"`
-	Status     OrderStatus  `json:"status"`
-	CreatedAt  time.Time    `json:"createdAt"`
-	UpdatedAt  time.Time    `json:"updatedAt"`
-}
-
-func (Order) IsSearchResult() {}
-
 type OrderConnection struct {
 	Edges      []*OrderEdge `json:"edges"`
 	PageInfo   *PageInfo    `json:"pageInfo"`
@@ -121,14 +96,6 @@ type OrderConnection struct {
 type OrderEdge struct {
 	Cursor string `json:"cursor"`
 	Node   *Order `json:"node"`
-}
-
-type OrderItem struct {
-	ID                  string   `json:"id"`
-	MenuItem            MenuItem `json:"menuItem"`
-	Quantity            int      `json:"quantity"`
-	SpecialInstructions *string  `json:"specialInstructions,omitempty"`
-	Subtotal            float64  `json:"subtotal"`
 }
 
 type OrderItemInput struct {
@@ -148,14 +115,6 @@ type Query struct {
 }
 
 type Subscription struct {
-}
-
-type Ticket struct {
-	ID        string       `json:"id"`
-	Order     *Order       `json:"order"`
-	Status    TicketStatus `json:"status"`
-	CreatedAt time.Time    `json:"createdAt"`
-	UpdatedAt time.Time    `json:"updatedAt"`
 }
 
 type ValidationError struct {

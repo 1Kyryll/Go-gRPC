@@ -18,3 +18,35 @@ models:
   DateTime:
     model:
       - github.com/99designs/gqlgen/graphql.Time
+  Order:
+    model:
+      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.Order
+    fields:
+      customer:
+        resolver: true
+      items:
+        resolver: true
+      ticket:
+        resolver: true
+      totalPrice:
+        resolver: true
+  OrderItem:
+    model:
+      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.OrderItem
+    fields:
+      menuItem:
+        resolver: true
+      subtotal:
+        resolver: true
+  Customer:
+    model:
+      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.Customer
+    fields:
+      orders:
+        resolver: true
+  Ticket:
+    model:
+      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.Ticket
+    fields:
+      order:
+        resolver: true
