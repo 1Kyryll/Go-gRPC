@@ -22,12 +22,12 @@ const (
 )
 
 type OrderItemInput struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	MenuItemId         int32                  `protobuf:"varint,1,opt,name=menu_item_id,json=menuItemId,proto3" json:"menu_item_id,omitempty"`
-	Quantity           int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	SpecialInstruction string                 `protobuf:"bytes,3,opt,name=special_instruction,json=specialInstruction,proto3" json:"special_instruction,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	MenuItemId          int32                  `protobuf:"varint,1,opt,name=menu_item_id,json=menuItemId,proto3" json:"menu_item_id,omitempty"`
+	Quantity            int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	SpecialInstructions string                 `protobuf:"bytes,3,opt,name=special_instructions,json=specialInstructions,proto3" json:"special_instructions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *OrderItemInput) Reset() {
@@ -74,9 +74,9 @@ func (x *OrderItemInput) GetQuantity() int32 {
 	return 0
 }
 
-func (x *OrderItemInput) GetSpecialInstruction() string {
+func (x *OrderItemInput) GetSpecialInstructions() string {
 	if x != nil {
-		return x.SpecialInstruction
+		return x.SpecialInstructions
 	}
 	return ""
 }
@@ -365,12 +365,12 @@ var File_orders_proto protoreflect.FileDescriptor
 
 const file_orders_proto_rawDesc = "" +
 	"\n" +
-	"\forders.proto\x12\x06orders\"\x7f\n" +
+	"\forders.proto\x12\x06orders\"\x81\x01\n" +
 	"\x0eOrderItemInput\x12 \n" +
 	"\fmenu_item_id\x18\x01 \x01(\x05R\n" +
 	"menuItemId\x12\x1a\n" +
-	"\bquantity\x18\x02 \x01(\x05R\bquantity\x12/\n" +
-	"\x13special_instruction\x18\x03 \x01(\tR\x12specialInstruction\"P\n" +
+	"\bquantity\x18\x02 \x01(\x05R\bquantity\x121\n" +
+	"\x14special_instructions\x18\x03 \x01(\tR\x13specialInstructions\"P\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x1f\n" +
 	"\vcustomer_id\x18\x02 \x01(\x05R\n" +

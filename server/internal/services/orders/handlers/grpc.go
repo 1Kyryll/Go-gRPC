@@ -39,12 +39,7 @@ func (h *OrdersGrpcHandler) StreamCreatedOrders(
 }
 
 func (h *OrdersGrpcHandler) CreateOrder(ctx context.Context, req *orders.CreateOrderRequest) (*orders.CreateOrderResponse, error) {
-	order := &orders.Order{
-		CustomerId: req.CustomerId,
-		Items:      req.Items,
-	}
-
-	_, err := h.ordersService.CreateOrder(ctx, order)
+	_, err := h.ordersService.CreateOrder(ctx, req)
 	if err != nil {
 		return nil, err
 	}

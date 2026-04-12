@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 
 	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type OrdersService struct {
@@ -22,23 +22,35 @@ func NewOrdersService(queries *sqlc.Queries) *OrdersService {
 	}
 }
 
-func (s *OrdersService) CreateOrder(ctx context.Context, order *orders.Order) (*orders.Order, error) {
-	itemsJSON, err := json.Marshal(order.Items)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrderRequest) (*orders.Order, error) {
 	orderRow, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
-		CustomerID: order.CustomerId,
-		Items:      itemsJSON,
-		Status:     "pending",
+		CustomerID: req.CustomerId,
+		Status:     "PENDING",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	order.Id = orderRow.ID
-	order.Status = orderRow.Status
+	for _, item := range req.Items {
+		_, err := s.queries.CreateOrderItem(ctx, sqlc.CreateOrderItemParams{
+			OrderID:    orderRow.ID,
+			MenuItemID: item.MenuItemId,
+			Quantity:   item.Quantity,
+			SpecialInstructions: pgtype.Text{
+				String: item.SpecialInstructions,
+				Valid:  item.SpecialInstructions != "",
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	order := &orders.Order{
+		Id:         orderRow.ID,
+		CustomerId: req.CustomerId,
+		Status:     orderRow.Status,
+	}
 
 	// Broadcast order to kitchen subscribers
 	s.mu.Lock()
@@ -66,12 +78,9 @@ func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*ord
 
 	result := make([]*orders.Order, len(dbOrders))
 	for i, o := range dbOrders {
-		var items []string
-		json.Unmarshal(o.Items, &items)
 		result[i] = &orders.Order{
 			Id:         o.ID,
 			CustomerId: o.CustomerID,
-			Items:      items,
 			Status:     o.Status,
 		}
 	}

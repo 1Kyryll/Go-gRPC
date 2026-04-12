@@ -28,12 +28,7 @@ func (h *OrdersHTTPHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	order := &orders.Order{
-		CustomerId: req.GetCustomerId(),
-		Items:      req.GetItems(),
-	}
-
-	result, err := h.ordersService.CreateOrder(r.Context(), order)
+	result, err := h.ordersService.CreateOrder(r.Context(), &req)
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, err)
 		return
