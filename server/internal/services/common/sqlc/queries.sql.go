@@ -11,6 +11,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelOrder = `-- name: CancelOrder :one
+UPDATE orders SET status = 'CANCELLED', updated_at = NOW()
+WHERE id = $1
+RETURNING id, customer_id, status, created_at, updated_at
+`
+
+func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
+	row := q.db.QueryRow(ctx, cancelOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const completeOrder = `-- name: CompleteOrder :exec
 UPDATE orders SET status = 'completed', updated_at = NOW()
 WHERE id = $1
@@ -31,15 +50,77 @@ func (q *Queries) CompleteTicketByOrderID(ctx context.Context, orderID int32) er
 	return err
 }
 
-const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (customer_id, items, status)
+const countMenuItems = `-- name: CountMenuItems :one
+SELECT count(*) FROM menu_items
+WHERE (CASE WHEN $1::text != '' THEN category = $1 ELSE TRUE END)
+`
+
+func (q *Queries) CountMenuItems(ctx context.Context, category string) (int64, error) {
+	row := q.db.QueryRow(ctx, countMenuItems, category)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countOrders = `-- name: CountOrders :one
+SELECT count(*) FROM orders
+WHERE (CASE WHEN $1::text != '' THEN status = $1 ELSE TRUE END)
+`
+
+func (q *Queries) CountOrders(ctx context.Context, status string) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrders, status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countOrdersByCustomerID = `-- name: CountOrdersByCustomerID :one
+SELECT count(*) FROM orders
+WHERE customer_id = $1
+`
+
+func (q *Queries) CountOrdersByCustomerID(ctx context.Context, customerID int32) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrdersByCustomerID, customerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createCustomer = `-- name: CreateCustomer :one
+
+INSERT INTO customers (name, email, phone)
 VALUES ($1, $2, $3)
+RETURNING id, name, email, phone, created_at
+`
+
+type CreateCustomerParams struct {
+	Name  string      `json:"name"`
+	Email string      `json:"email"`
+	Phone pgtype.Text `json:"phone"`
+}
+
+// Customers
+func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error) {
+	row := q.db.QueryRow(ctx, createCustomer, arg.Name, arg.Email, arg.Phone)
+	var i Customer
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Phone,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO orders (customer_id, status)
+VALUES ($1, $2)
 RETURNING id, status, created_at
 `
 
 type CreateOrderParams struct {
 	CustomerID int32  `json:"customer_id"`
-	Items      []byte `json:"items"`
 	Status     string `json:"status"`
 }
 
@@ -50,9 +131,42 @@ type CreateOrderRow struct {
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
-	row := q.db.QueryRow(ctx, createOrder, arg.CustomerID, arg.Items, arg.Status)
+	row := q.db.QueryRow(ctx, createOrder, arg.CustomerID, arg.Status)
 	var i CreateOrderRow
 	err := row.Scan(&i.ID, &i.Status, &i.CreatedAt)
+	return i, err
+}
+
+const createOrderItem = `-- name: CreateOrderItem :one
+
+INSERT INTO order_items (order_id, menu_item_id, quantity, special_instructions)
+VALUES ($1, $2, $3, $4)
+RETURNING id, order_id, menu_item_id, quantity, special_instructions
+`
+
+type CreateOrderItemParams struct {
+	OrderID             int32       `json:"order_id"`
+	MenuItemID          int32       `json:"menu_item_id"`
+	Quantity            int32       `json:"quantity"`
+	SpecialInstructions pgtype.Text `json:"special_instructions"`
+}
+
+// Orders Items
+func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error) {
+	row := q.db.QueryRow(ctx, createOrderItem,
+		arg.OrderID,
+		arg.MenuItemID,
+		arg.Quantity,
+		arg.SpecialInstructions,
+	)
+	var i OrderItem
+	err := row.Scan(
+		&i.ID,
+		&i.OrderID,
+		&i.MenuItemID,
+		&i.Quantity,
+		&i.SpecialInstructions,
+	)
 	return i, err
 }
 
@@ -79,8 +193,209 @@ func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (Cre
 	return i, err
 }
 
+const getCustomerByID = `-- name: GetCustomerByID :one
+SELECT id, name, email, phone, created_at FROM customers
+WHERE id = $1
+`
+
+func (q *Queries) GetCustomerByID(ctx context.Context, id int32) (Customer, error) {
+	row := q.db.QueryRow(ctx, getCustomerByID, id)
+	var i Customer
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Phone,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getCustomersByIDs = `-- name: GetCustomersByIDs :many
+SELECT id, name, email, phone, created_at FROM customers
+WHERE id = ANY($1::int[])
+`
+
+func (q *Queries) GetCustomersByIDs(ctx context.Context, dollar_1 []int32) ([]Customer, error) {
+	rows, err := q.db.Query(ctx, getCustomersByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Customer
+	for rows.Next() {
+		var i Customer
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMenuItemByID = `-- name: GetMenuItemByID :one
+
+SELECT id, name, description, price, category, is_available, contains_allergens, is_alcoholic, created_at FROM menu_items
+WHERE id = $1
+`
+
+// Menu Items
+func (q *Queries) GetMenuItemByID(ctx context.Context, id int32) (MenuItem, error) {
+	row := q.db.QueryRow(ctx, getMenuItemByID, id)
+	var i MenuItem
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.Category,
+		&i.IsAvailable,
+		&i.ContainsAllergens,
+		&i.IsAlcoholic,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getMenuItemsByIDs = `-- name: GetMenuItemsByIDs :many
+SELECT id, name, description, price, category, is_available, contains_allergens, is_alcoholic, created_at FROM menu_items
+WHERE id = ANY($1::int[])
+`
+
+func (q *Queries) GetMenuItemsByIDs(ctx context.Context, dollar_1 []int32) ([]MenuItem, error) {
+	rows, err := q.db.Query(ctx, getMenuItemsByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MenuItem
+	for rows.Next() {
+		var i MenuItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Category,
+			&i.IsAvailable,
+			&i.ContainsAllergens,
+			&i.IsAlcoholic,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMenuItemsPaginated = `-- name: GetMenuItemsPaginated :many
+SELECT id, name, description, price, category, is_available, contains_allergens, is_alcoholic, created_at FROM menu_items
+WHERE (CASE WHEN $1::int > 0 THEN id > $1 ELSE TRUE END)
+    AND (CASE WHEN $2::text != '' THEN category = $2 ELSE TRUE END)
+ORDER BY id ASC
+LIMIT $3
+`
+
+type GetMenuItemsPaginatedParams struct {
+	AfterID   int32  `json:"after_id"`
+	Category  string `json:"category"`
+	PageLimit int32  `json:"page_limit"`
+}
+
+func (q *Queries) GetMenuItemsPaginated(ctx context.Context, arg GetMenuItemsPaginatedParams) ([]MenuItem, error) {
+	rows, err := q.db.Query(ctx, getMenuItemsPaginated, arg.AfterID, arg.Category, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MenuItem
+	for rows.Next() {
+		var i MenuItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Category,
+			&i.IsAvailable,
+			&i.ContainsAllergens,
+			&i.IsAlcoholic,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrderByID = `-- name: GetOrderByID :one
+SELECT id, customer_id, status, created_at, updated_at FROM orders
+WHERE id = $1
+`
+
+func (q *Queries) GetOrderByID(ctx context.Context, id int32) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderByID, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getOrderItemsByOrderIDs = `-- name: GetOrderItemsByOrderIDs :many
+SELECT id, order_id, menu_item_id, quantity, special_instructions FROM order_items
+WHERE order_id = ANY($1::int[])
+`
+
+func (q *Queries) GetOrderItemsByOrderIDs(ctx context.Context, dollar_1 []int32) ([]OrderItem, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsByOrderIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.MenuItemID,
+			&i.Quantity,
+			&i.SpecialInstructions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrders = `-- name: GetOrders :many
-SELECT id, customer_id, items, status, created_at, updated_at FROM orders
+SELECT id, customer_id, status, created_at, updated_at FROM orders
 WHERE customer_id = $1
 `
 
@@ -96,7 +411,88 @@ func (q *Queries) GetOrders(ctx context.Context, customerID int32) ([]Order, err
 		if err := rows.Scan(
 			&i.ID,
 			&i.CustomerID,
-			&i.Items,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersByCustomerIDPaginated = `-- name: GetOrdersByCustomerIDPaginated :many
+SELECT id, customer_id, status, created_at, updated_at FROM orders
+WHERE customer_id = $1
+    AND (CASE WHEN $2::int > 0 THEN id > $2 ELSE TRUE END)
+ORDER BY id ASC
+LIMIT $3
+`
+
+type GetOrdersByCustomerIDPaginatedParams struct {
+	CustomerID int32 `json:"customer_id"`
+	AfterID    int32 `json:"after_id"`
+	PageLimit  int32 `json:"page_limit"`
+}
+
+func (q *Queries) GetOrdersByCustomerIDPaginated(ctx context.Context, arg GetOrdersByCustomerIDPaginatedParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersByCustomerIDPaginated, arg.CustomerID, arg.AfterID, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersPaginated = `-- name: GetOrdersPaginated :many
+
+SELECT id, customer_id, status, created_at, updated_at FROM orders
+WHERE (CASE WHEN $1::int > 0 THEN id > $1 ELSE TRUE END)
+    AND (CASE WHEN $2::text != '' THEN status = $2 ELSE TRUE END)
+ORDER BY id ASC
+LIMIT $3
+`
+
+type GetOrdersPaginatedParams struct {
+	AfterID   int32  `json:"after_id"`
+	Status    string `json:"status"`
+	PageLimit int32  `json:"page_limit"`
+}
+
+// Orders(paginated)
+func (q *Queries) GetOrdersPaginated(ctx context.Context, arg GetOrdersPaginatedParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersPaginated, arg.AfterID, arg.Status, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -140,4 +536,160 @@ func (q *Queries) GetTicketsByOrderID(ctx context.Context, orderID int32) ([]Tic
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTicketsByOrderIDs = `-- name: GetTicketsByOrderIDs :many
+
+SELECT id, order_id, status, created_at, updated_at FROM tickets
+WHERE order_id = ANY($1::int[])
+`
+
+// Tickets(batch)
+func (q *Queries) GetTicketsByOrderIDs(ctx context.Context, dollar_1 []int32) ([]Ticket, error) {
+	rows, err := q.db.Query(ctx, getTicketsByOrderIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Ticket
+	for rows.Next() {
+		var i Ticket
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchCustomers = `-- name: SearchCustomers :many
+SELECT id, name, email, phone, created_at FROM customers
+WHERE name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
+`
+
+func (q *Queries) SearchCustomers(ctx context.Context, dollar_1 pgtype.Text) ([]Customer, error) {
+	rows, err := q.db.Query(ctx, searchCustomers, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Customer
+	for rows.Next() {
+		var i Customer
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchMenuItems = `-- name: SearchMenuItems :many
+SELECT id, name, description, price, category, is_available, contains_allergens, is_alcoholic, created_at FROM menu_items
+WHERE name ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%'
+`
+
+func (q *Queries) SearchMenuItems(ctx context.Context, dollar_1 pgtype.Text) ([]MenuItem, error) {
+	rows, err := q.db.Query(ctx, searchMenuItems, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MenuItem
+	for rows.Next() {
+		var i MenuItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Category,
+			&i.IsAvailable,
+			&i.ContainsAllergens,
+			&i.IsAlcoholic,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchOrders = `-- name: SearchOrders :many
+
+SELECT id, customer_id, status, created_at, updated_at FROM orders
+WHERE CAST(id AS TEXT) ILIKE '%' || $1 || '%'
+`
+
+// Search Orders by ID (cast to text or ILIKE)
+func (q *Queries) SearchOrders(ctx context.Context, dollar_1 pgtype.Text) ([]Order, error) {
+	rows, err := q.db.Query(ctx, searchOrders, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateOrderStatus = `-- name: UpdateOrderStatus :one
+UPDATE orders SET status = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING id, customer_id, status, created_at, updated_at
+`
+
+type UpdateOrderStatusParams struct {
+	ID     int32  `json:"id"`
+	Status string `json:"status"`
+}
+
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error) {
+	row := q.db.QueryRow(ctx, updateOrderStatus, arg.ID, arg.Status)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

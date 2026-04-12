@@ -8,13 +8,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Customer struct {
+	ID        int32              `json:"id"`
+	Name      string             `json:"name"`
+	Email     string             `json:"email"`
+	Phone     pgtype.Text        `json:"phone"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type MenuItem struct {
+	ID                int32              `json:"id"`
+	Name              string             `json:"name"`
+	Description       pgtype.Text        `json:"description"`
+	Price             pgtype.Numeric     `json:"price"`
+	Category          string             `json:"category"`
+	IsAvailable       pgtype.Bool        `json:"is_available"`
+	ContainsAllergens []string           `json:"contains_allergens"`
+	IsAlcoholic       pgtype.Bool        `json:"is_alcoholic"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
 type Order struct {
 	ID         int32              `json:"id"`
 	CustomerID int32              `json:"customer_id"`
-	Items      []byte             `json:"items"`
 	Status     string             `json:"status"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
+type OrderItem struct {
+	ID                  int32       `json:"id"`
+	OrderID             int32       `json:"order_id"`
+	MenuItemID          int32       `json:"menu_item_id"`
+	Quantity            int32       `json:"quantity"`
+	SpecialInstructions pgtype.Text `json:"special_instructions"`
 }
 
 type Ticket struct {
