@@ -1,0 +1,160 @@
+scalar DateTime
+
+enum OrderStatus {
+    PENDING
+    CONFIRMED 
+    COOKING
+    COMPLETED
+    CANCELLED
+}
+
+enum TicketStatus {
+    OPEN
+    COOKING
+    DONE
+}
+
+enum MenuCategory {
+    APPETIZER
+    MAIN
+    DRINK 
+    DESSERT
+}
+
+interface MenuItem {
+    id: ID!
+    name: String!
+    description: String
+    price: Float!
+    category: MenuCategory!
+    isAvailable: Boolean!
+}
+
+type FoodItem implements MenuItem {
+    id: ID!
+    name: String!
+    description: String
+    price: Float!
+    category: MenuCategory!
+    isAvailable: Boolean!
+    containsAllergens: [String!]
+}
+
+type DrinkItem implements MenuItem {
+    id: ID!
+    name: String!
+    description: String
+    price: Float!
+    category: MenuCategory!
+    isAvailable: Boolean!
+    isAlcoholic: Boolean!
+}
+
+type Customer {
+    id: ID!
+    name: String!
+    email: String!
+    phone: String
+    orders(first: Int, after: String): OrderConnection!
+    createdAt: DateTime!
+}
+
+type Order {
+    id: ID!
+    customer: Customer!
+    items: [OrderItem!]!
+    ticket: Ticket
+    totalPrice: Float!
+    status: OrderStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type OrderItem {
+    id: ID!
+    menuItem: MenuItem!
+    quantity: Int!
+    specialInstructions: String
+    subtotal: Float!
+}
+
+type Ticket {
+    id: ID!
+    order: Order!
+    status: TicketStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type OrderConnection {
+    edges: [OrderEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type OrderEdge {
+    cursor: String!
+    node: Order!
+}
+
+type MenuItemConnection {
+    edges: [MenuItemEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type MenuItemEdge {
+    cursor: String!
+    node: MenuItem!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+union SearchResult = FoodItem | DrinkItem | Order | Customer 
+
+type ValidationError {
+    field: String!
+    message: String!
+}
+
+input CreateOrderInput {
+    customerId: ID!
+    items: [OrderItemInput!]!
+}
+
+input OrderItemInput {
+    menuItemId: ID!
+    quantity: Int!
+    specialInstructions: String
+}
+
+type CreateOrderPayload {
+    order: Order
+    errors: [ValidationError!]
+}
+
+type Query {
+    order(id: ID!): Order
+    orders(first: Int, after: String, status: OrderStatus): OrderConnection!
+    customer(id: ID!): Customer
+    menuItems(first: Int, after: String, category: MenuCategory): MenuItemConnection!
+    search(query: String!): [SearchResult!]!
+}
+
+type Mutation {
+    createOrder(input: CreateOrderInput!): CreateOrderPayload!
+    updateOrderStatus(id: ID!, status: OrderStatus!): Order!
+    completeOrder(orderId: ID!): Order!
+    cancelOrder(orderId: ID!): Order!
+}
+
+type Subscription {
+    orderCreated: Order!
+    orderStatusChanged(orderId: ID): Order!
+}
+
