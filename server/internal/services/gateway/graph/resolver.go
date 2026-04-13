@@ -74,3 +74,43 @@ func parseID(id string) (int32, error) {
 	}
 	return int32(n), nil
 }
+
+// broadcastNewOrder sends a new order to all orderCreated subscribers.
+func (r *Resolver) broadcastNewOrder(order *model.Order) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	orderID, _ := strconv.ParseInt(order.ID, 10, 32)
+	protoOrder := &orders.Order{
+		Id:         int32(orderID),
+		CustomerId: order.CustomerID,
+		Status:     string(order.Status),
+	}
+
+	for ch := range r.orderSubscribers {
+		select {
+		case ch <- protoOrder:
+		default:
+		}
+	}
+}
+
+// broadcastStatusChange sends an updated order to all orderStatusChanged subscribers.
+func (r *Resolver) broadcastStatusChange(order *model.Order) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	orderID, _ := strconv.ParseInt(order.ID, 10, 32)
+	protoOrder := &orders.Order{
+		Id:         int32(orderID),
+		CustomerId: order.CustomerID,
+		Status:     string(order.Status),
+	}
+
+	for ch := range r.statusSubscribers {
+		select {
+		case ch <- protoOrder:
+		default:
+		}
+	}
+}
