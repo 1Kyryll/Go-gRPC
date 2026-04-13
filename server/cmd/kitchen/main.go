@@ -77,8 +77,8 @@ func main() {
 				return
 			}
 
-			log.Printf("NEW ORDER: id=%d customer=%d items=%v",
-				order.Id, order.CustomerId, order.Items)
+			log.Printf("NEW ORDER: id=%d customer=%d status=%s",
+				order.Id, order.CustomerId, order.Status)
 
 			// Create a ticket for this order
 			ticket := &kitchen.Ticket{

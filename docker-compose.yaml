@@ -38,6 +38,21 @@ services:
       - postgres
       - orders
 
+  gateway:
+    build:
+      context: ./server
+      dockerfile: cmd/gateway/Dockerfile
+    container_name: Go-gRPC-Gateway
+    environment:
+      GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
+      ORDERS_GRPC_ADDR: orders:9000
+      GATEWAY_PORT: "8082"
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - orders
+
   client:
     build:
       context: ./client
