@@ -58,11 +58,14 @@ services:
       context: ./client
       dockerfile: Dockerfile
     container_name: Go-gRPC-Client
+    environment:
+      - NEXT_PUBLIC_GRAPHQL_URL=http://gateway:8082/graphql
     ports:
       - "3000:3000"
     depends_on:
       - orders
       - kitchen
+      - gateway
 
 volumes:
   postgres_data:
