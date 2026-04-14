@@ -1,44 +1,116 @@
+import Link from "next/link";
+
 type Ticket = {
-    id: number;
-    order_id: number;
-    status: string;
-    created_at: string;
-    updated_at: string;
+  id: number;
+  order_id: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
 };
 
-export default async function TicketPage({ params }: { params: Promise<{ orderId: string }> }) {
-    const { orderId } = await params;
-    const res = await fetch(`http://kitchen:8081/ticket/${orderId}`, { cache: "no-store" });
-    const tickets: Ticket[] = await res.json();
+const KITCHEN_API_URL = process.env.KITCHEN_API_URL || "http://kitchen:8081";
 
-    return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold mb-6">Tickets for Order #{orderId}</h1>
+const statusColors: Record<string, string> = {
+  open: "bg-amber-100 text-amber-700",
+  cooking: "bg-orange-100 text-orange-700",
+  done: "bg-green-100 text-green-700",
+};
 
-            {tickets.length === 0 && (
-                <p className="text-gray-500">No tickets found for this order.</p>
-            )}
+export default async function TicketPage({
+  params,
+}: {
+  params: Promise<{ orderId: string }>;
+}) {
+  const { orderId } = await params;
 
-            <div className="space-y-4">
-                {tickets.map((ticket) => (
-                    <div
-                        key={ticket.id}
-                        className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-                    >
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="font-bold text-lg">Ticket #{ticket.id}</span>
-                            <span className={`text-sm font-medium px-2 py-1 rounded ${
-                                ticket.status === "open"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                            }`}>
-                                {ticket.status}
-                            </span>
-                        </div>
-                        <p className="text-sm text-gray-500">Order #{ticket.order_id}</p>
-                    </div>
-                ))}
-            </div>
+  let tickets: Ticket[] = [];
+  let error: string | null = null;
+
+  try {
+    const res = await fetch(`${KITCHEN_API_URL}/ticket/${orderId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    tickets = await res.json();
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load tickets";
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <Link
+        href={`/orders/${orderId}`}
+        className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        Order #{orderId}
+      </Link>
+
+      <h1 className="text-2xl font-bold mb-6">
+        Tickets for Order #{orderId}
+      </h1>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mb-4">
+          Could not load tickets. Make sure the kitchen service is running.
         </div>
-    );
+      )}
+
+      {!error && tickets.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No tickets found for this order.</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {tickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold">Ticket #{ticket.id}</span>
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                  statusColors[ticket.status] || "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {ticket.status}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <span>
+                Created{" "}
+                {new Date(ticket.created_at).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+              {ticket.updated_at !== ticket.created_at && (
+                <span>
+                  Updated{" "}
+                  {new Date(ticket.updated_at).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
