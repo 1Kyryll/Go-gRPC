@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
+import { OrderProvider } from "../components/OrderContext";
+import Navbar from "../components/Navbar";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -9,8 +11,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "McDonald's",
-  description: "A McDonald's menu app",
+  title: "OrderFlow",
+  description: "Order & kitchen management system",
 };
 
 export default function RootLayout({
@@ -23,7 +25,14 @@ export default function RootLayout({
       lang="en"
       className={`${roboto.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <OrderProvider>
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
+        </OrderProvider>
+      </body>
     </html>
   );
 }
