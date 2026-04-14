@@ -79,7 +79,7 @@ export default async function OrderDetailPage({
         </p>
         <Link
           href="/orders"
-          className="text-indigo-600 font-medium hover:underline"
+          className="text-emerald-600 font-medium hover:underline"
         >
           Back to Orders
         </Link>
@@ -176,7 +176,7 @@ export default async function OrderDetailPage({
               </h2>
               <Link
                 href={`/ticket/${order.id}`}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-xs text-emerald-600 hover:underline"
               >
                 View details
               </Link>

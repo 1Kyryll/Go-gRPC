@@ -21,7 +21,7 @@ export default function MenuList({ items }: { items: MenuItem[] }) {
               !item.isAvailable
                 ? "opacity-50 border-gray-200"
                 : qty > 0
-                ? "border-indigo-300 ring-1 ring-indigo-200"
+                ? "border-emerald-300 ring-1 ring-emerald-200"
                 : "border-gray-200 hover:shadow-md"
             }`}
           >
@@ -72,7 +72,7 @@ export default function MenuList({ items }: { items: MenuItem[] }) {
                         price: item.price,
                       })
                     }
-                    className="w-full py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                    className="w-full py-1.5 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                   >
                     Add to Cart
                   </button>

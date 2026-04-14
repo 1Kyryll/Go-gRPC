@@ -57,7 +57,7 @@ export default function CreateOrderPage() {
         <div className="flex gap-3 justify-center">
           <button
             onClick={() => router.push(`/orders/${success}`)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-md font-medium hover:bg-emerald-700 transition-colors"
           >
             Track Order
           </button>
@@ -81,7 +81,7 @@ export default function CreateOrderPage() {
           <p className="text-gray-500 mb-4">Your cart is empty.</p>
           <button
             onClick={() => router.push("/")}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-md font-medium hover:bg-emerald-700 transition-colors"
           >
             Browse Menu
           </button>
@@ -179,13 +179,13 @@ export default function CreateOrderPage() {
                 placeholder="Enter your customer ID"
                 required
                 min={1}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Placing Order..." : "Place Order"}
             </button>

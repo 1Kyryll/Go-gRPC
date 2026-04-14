@@ -73,7 +73,7 @@ export default function OrderStatusLive({
     <span
       className={`text-xs font-medium px-2.5 py-1 rounded-full transition-all duration-300 ${
         statusColors[status] || "bg-gray-100 text-gray-700"
-      } ${flash ? "scale-110 ring-2 ring-indigo-300" : ""}`}
+      } ${flash ? "scale-110 ring-2 ring-emerald-300" : ""}`}
     >
       {status}
     </span>

@@ -21,7 +21,7 @@ export default function Navbar() {
           <div className="flex items-center gap-1">
             <Link
               href="/"
-              className="text-lg font-bold text-indigo-600 mr-6 shrink-0"
+              className="text-lg font-bold text-emerald-700 mr-6 shrink-0"
             >
               OrderFlow
             </Link>
@@ -34,7 +34,7 @@ export default function Navbar() {
                     href={link.href}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       active
-                        ? "bg-indigo-50 text-indigo-700"
+                        ? "bg-emerald-50 text-emerald-700"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     }`}
                   >
@@ -47,7 +47,7 @@ export default function Navbar() {
 
           <Link
             href="/order/create"
-            className="relative inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            className="relative inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
           >
             <svg
               className="w-4 h-4"

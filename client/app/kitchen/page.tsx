@@ -116,7 +116,7 @@ export default function KitchenPage() {
                       key={i}
                       className="text-sm text-gray-700 flex items-center gap-2"
                     >
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0" />
                       {item}
                     </li>
                   ))}

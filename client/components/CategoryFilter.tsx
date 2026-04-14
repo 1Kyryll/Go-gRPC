@@ -38,7 +38,7 @@ export default function CategoryFilter({
             onClick={() => handleSelect(cat.value)}
             className={`px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors ${
               active
-                ? "bg-indigo-600 text-white"
+                ? "bg-emerald-600 text-white"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
