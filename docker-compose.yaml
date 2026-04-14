@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: Go-gRPC-DB
+    container_name: RSM-DB
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -15,7 +15,7 @@ services:
     build:
       context: ./server
       dockerfile: cmd/orders/Dockerfile
-    container_name: Go-gRPC-Orders
+    container_name: RSM-Orders
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
     ports:
@@ -28,7 +28,7 @@ services:
     build:
       context: ./server
       dockerfile: cmd/kitchen/Dockerfile
-    container_name: Go-gRPC-Kitchen
+    container_name: RSM-Kitchen
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
       ORDERS_GRPC_ADDR: orders:9000
@@ -42,7 +42,7 @@ services:
     build:
       context: ./server
       dockerfile: cmd/gateway/Dockerfile
-    container_name: Go-gRPC-Gateway
+    container_name: RSM-Gateway
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
       ORDERS_GRPC_ADDR: orders:9000
@@ -57,7 +57,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: Go-gRPC-Client
+    container_name: RSM-Client
     environment:
       - NEXT_PUBLIC_GRAPHQL_URL=http://gateway:8082/graphql
     ports:
