@@ -31,7 +31,7 @@ func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
 }
 
 const completeOrder = `-- name: CompleteOrder :exec
-UPDATE orders SET status = 'completed', updated_at = NOW()
+UPDATE orders SET status = 'COMPLETED', updated_at = NOW()
 WHERE id = $1
 `
 
@@ -41,7 +41,7 @@ func (q *Queries) CompleteOrder(ctx context.Context, id int32) error {
 }
 
 const completeTicketByOrderID = `-- name: CompleteTicketByOrderID :exec
-UPDATE tickets SET status = 'done', updated_at = NOW()
+UPDATE tickets SET status = 'DONE', updated_at = NOW()
 WHERE order_id = $1
 `
 
@@ -361,6 +361,37 @@ func (q *Queries) GetOrderByID(ctx context.Context, id int32) (Order, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getOrderItemsByOrderID = `-- name: GetOrderItemsByOrderID :many
+SELECT id, order_id, menu_item_id, quantity, special_instructions FROM order_items
+WHERE order_id = $1
+`
+
+func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int32) ([]OrderItem, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsByOrderID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.MenuItemID,
+			&i.Quantity,
+			&i.SpecialInstructions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getOrderItemsByOrderIDs = `-- name: GetOrderItemsByOrderIDs :many

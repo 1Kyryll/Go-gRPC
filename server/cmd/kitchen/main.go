@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -21,6 +22,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// enrichedOrder is what we broadcast over SSE — the gRPC Order enriched with item names.
+type enrichedOrder struct {
+	ID         int32    `json:"id"`
+	CustomerID int32    `json:"customer_id"`
+	Status     string   `json:"status"`
+	Items      []string `json:"items"`
+}
 
 func main() {
 	godotenv.Load()
@@ -83,13 +92,55 @@ func main() {
 			// Create a ticket for this order
 			ticket := &kitchen.Ticket{
 				OrderId: order.Id,
-				Status:  "open",
+				Status:  "OPEN",
 			}
 			if _, err := svc.CreateTicket(context.Background(), ticket); err != nil {
 				log.Printf("Failed to create ticket for order %d: %v", order.Id, err)
 			}
 
-			sse.Broadcast(order)
+			// Enrich the order with item names from the database
+			enriched := enrichedOrder{
+				ID:         order.Id,
+				CustomerID: order.CustomerId,
+				Status:     order.Status,
+				Items:      []string{},
+			}
+
+			orderItems, err := queries.GetOrderItemsByOrderID(context.Background(), order.Id)
+			if err != nil {
+				log.Printf("Failed to fetch items for order %d: %v", order.Id, err)
+			} else {
+				// Collect menu item IDs to fetch names
+				menuIDs := make([]int32, len(orderItems))
+				for i, oi := range orderItems {
+					menuIDs[i] = oi.MenuItemID
+				}
+
+				menuItems, err := queries.GetMenuItemsByIDs(context.Background(), menuIDs)
+				if err != nil {
+					log.Printf("Failed to fetch menu items: %v", err)
+				} else {
+					// Build name lookup
+					nameMap := make(map[int32]string, len(menuItems))
+					for _, mi := range menuItems {
+						nameMap[mi.ID] = mi.Name
+					}
+
+					for _, oi := range orderItems {
+						name := nameMap[oi.MenuItemID]
+						if name == "" {
+							name = fmt.Sprintf("Item #%d", oi.MenuItemID)
+						}
+						if oi.Quantity > 1 {
+							enriched.Items = append(enriched.Items, fmt.Sprintf("%s x%d", name, oi.Quantity))
+						} else {
+							enriched.Items = append(enriched.Items, name)
+						}
+					}
+				}
+			}
+
+			sse.Broadcast(enriched)
 		}
 	}()
 

@@ -21,11 +21,11 @@ SELECT * FROM tickets
 WHERE order_id = $1;
 
 -- name: CompleteTicketByOrderID :exec
-UPDATE tickets SET status = 'done', updated_at = NOW()
+UPDATE tickets SET status = 'DONE', updated_at = NOW()
 WHERE order_id = $1;
 
 -- name: CompleteOrder :exec
-UPDATE orders SET status = 'completed', updated_at = NOW()
+UPDATE orders SET status = 'COMPLETED', updated_at = NOW()
 WHERE id = $1;
 
 -- name: UpdateOrderStatus :one
@@ -88,6 +88,10 @@ WHERE name ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%';
 INSERT INTO order_items (order_id, menu_item_id, quantity, special_instructions)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
+
+-- name: GetOrderItemsByOrderID :many
+SELECT * FROM order_items
+WHERE order_id = $1;
 
 -- name: GetOrderItemsByOrderIDs :many
 SELECT * FROM order_items
