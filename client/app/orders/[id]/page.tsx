@@ -1,6 +1,7 @@
 import { gql } from "@/lib/graphql";
 import Link from "next/link";
 import OrderStatusLive from "@/components/OrderStatusLive";
+import Navbar from "@/components/Navbar";
 
 type OrderDetail = {
   id: string;
@@ -88,122 +89,125 @@ export default async function OrderDetailPage({
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <Link
-        href="/orders"
-        className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+    <>
+      <Navbar />
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        <Link
+          href="/orders"
+          className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          All Orders
+        </Link>
+
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Order #{order.id}</h1>
+          <OrderStatusLive
+            orderId={order.id}
+            initialStatus={order.status}
+            statusColors={statusColors}
           />
-        </svg>
-        All Orders
-      </Link>
-
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Order #{order.id}</h1>
-        <OrderStatusLive
-          orderId={order.id}
-          initialStatus={order.status}
-          statusColors={statusColors}
-        />
-      </div>
-
-      <div className="space-y-4">
-        {/* Customer info */}
-        {order.customer && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <h2 className="text-sm font-medium text-gray-500 mb-2">
-              Customer
-            </h2>
-            <p className="font-medium">{order.customer.name}</p>
-            <p className="text-sm text-gray-500">{order.customer.email}</p>
-          </div>
-        )}
-
-        {/* Order items */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <h2 className="text-sm font-medium text-gray-500 p-4 pb-2">
-            Items
-          </h2>
-          <div className="divide-y divide-gray-100">
-            {order.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium">
-                    {item.menuItem?.name || "Unknown item"}
-                  </p>
-                  {item.specialInstructions && (
-                    <p className="text-xs text-gray-400 italic mt-0.5">
-                      {item.specialInstructions}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    {item.quantity} x $
-                    {item.menuItem?.price?.toFixed(2) ?? "—"}
-                  </p>
-                  <p className="font-medium">${item.subtotal.toFixed(2)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between px-4 py-3 bg-gray-50 rounded-b-lg border-t border-gray-100">
-            <span className="font-bold">Total</span>
-            <span className="font-bold">${order.totalPrice.toFixed(2)}</span>
-          </div>
         </div>
 
-        {/* Ticket */}
-        {order.ticket && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-medium text-gray-500">
-                Kitchen Ticket
+        <div className="space-y-4">
+          {/* Customer info */}
+          {order.customer && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <h2 className="text-sm font-medium text-gray-500 mb-2">
+                Customer
               </h2>
-              <Link
-                href={`/ticket/${order.id}`}
-                className="text-xs text-emerald-600 hover:underline"
-              >
-                View details
-              </Link>
+              <p className="font-medium">{order.customer.name}</p>
+              <p className="text-sm text-gray-500">{order.customer.email}</p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Ticket #{order.ticket.id}</span>
-              <span
-                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                  ticketStatusColors[order.ticket.status] ||
-                  "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {order.ticket.status}
-              </span>
+          )}
+
+          {/* Order items */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <h2 className="text-sm font-medium text-gray-500 p-4 pb-2">
+              Items
+            </h2>
+            <div className="divide-y divide-gray-100">
+              {order.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {item.menuItem?.name || "Unknown item"}
+                    </p>
+                    {item.specialInstructions && (
+                      <p className="text-xs text-gray-400 italic mt-0.5">
+                        {item.specialInstructions}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
+                      {item.quantity} x $
+                      {item.menuItem?.price?.toFixed(2) ?? "—"}
+                    </p>
+                    <p className="font-medium">${item.subtotal.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between px-4 py-3 bg-gray-50 rounded-b-lg border-t border-gray-100">
+              <span className="font-bold">Total</span>
+              <span className="font-bold">${order.totalPrice.toFixed(2)}</span>
             </div>
           </div>
-        )}
 
-        {/* Timestamps */}
-        <p className="text-xs text-gray-400 text-center">
-          Created{" "}
-          {new Date(order.createdAt).toLocaleString(undefined, {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </p>
+          {/* Ticket */}
+          {order.ticket && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-medium text-gray-500">
+                  Kitchen Ticket
+                </h2>
+                <Link
+                  href={`/ticket/${order.id}`}
+                  className="text-xs text-emerald-600 hover:underline"
+                >
+                  View details
+                </Link>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Ticket #{order.ticket.id}</span>
+                <span
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    ticketStatusColors[order.ticket.status] ||
+                    "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {order.ticket.status}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Timestamps */}
+          <p className="text-xs text-gray-400 text-center">
+            Created{" "}
+            {new Date(order.createdAt).toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

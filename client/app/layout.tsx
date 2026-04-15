@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import { OrderProvider } from "../components/OrderContext";
-import Navbar from "../components/Navbar";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -27,7 +26,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <OrderProvider>
-          <Navbar />
           <main className="flex-1">
             {children}
           </main>
