@@ -49,21 +49,22 @@ func decodeCursor(cursor string) (int32, error) {
 
 func mapOrder(o sqlc.Order) *model.Order {
 	return &model.Order{
-		ID:         fmt.Sprintf("%d", o.ID),
-		CustomerID: o.CustomerID,
-		Status:     model.OrderStatus(o.Status),
-		CreatedAt:  model.TimestampToTime(o.CreatedAt),
-		UpdatedAt:  model.TimestampToTime(o.UpdatedAt),
+		ID:        fmt.Sprintf("%d", o.ID),
+		UserID:    o.UserID,
+		Status:    model.OrderStatus(o.Status),
+		CreatedAt: model.TimestampToTime(o.CreatedAt),
+		UpdatedAt: model.TimestampToTime(o.UpdatedAt),
 	}
 }
 
-func mapCustomer(c sqlc.Customer) *model.Customer {
-	return &model.Customer{
-		ID:        fmt.Sprintf("%d", c.ID),
-		Name:      c.Name,
-		Email:     c.Email,
-		Phone:     model.TextToStringPtr(c.Phone),
-		CreatedAt: model.TimestampToTime(c.CreatedAt),
+func mapUser(u sqlc.User) *model.User {
+	return &model.User{
+		ID:        fmt.Sprintf("%d", u.ID),
+		Username:  u.Username,
+		Email:     u.Email,
+		Phone:     model.TextToStringPtr(u.Phone),
+		CreatedAt: model.TimestampToTime(u.CreatedAt),
+		UpdatedAt: model.TimestampToTime(u.UpdatedAt),
 	}
 }
 
@@ -83,7 +84,7 @@ func (r *Resolver) broadcastNewOrder(order *model.Order) {
 	orderID, _ := strconv.ParseInt(order.ID, 10, 32)
 	protoOrder := &orders.Order{
 		Id:         int32(orderID),
-		CustomerId: order.CustomerID,
+		CustomerId: order.UserID,
 		Status:     string(order.Status),
 	}
 
@@ -103,7 +104,7 @@ func (r *Resolver) broadcastStatusChange(order *model.Order) {
 	orderID, _ := strconv.ParseInt(order.ID, 10, 32)
 	protoOrder := &orders.Order{
 		Id:         int32(orderID),
-		CustomerId: order.CustomerID,
+		CustomerId: order.UserID,
 		Status:     string(order.Status),
 	}
 

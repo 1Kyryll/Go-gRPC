@@ -1,0 +1,4 @@
+type Subscription {
+    orderCreated: Order!
+    orderStatusChanged(orderId: ID): Order!
+}

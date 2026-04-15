@@ -1,0 +1,36 @@
+type User {
+    id: ID!
+    username: String!
+    email: String!
+    phone: String
+    orders(first: Int, after: String): OrderConnection!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type Order {
+    id: ID!
+    user: User!
+    items: [OrderItem!]!
+    ticket: Ticket
+    totalPrice: Float!
+    status: OrderStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type OrderItem {
+    id: ID!
+    menuItem: MenuItem!
+    quantity: Int!
+    specialInstructions: String
+    subtotal: Float!
+}
+
+type Ticket {
+    id: ID!
+    order: Order!
+    status: TicketStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

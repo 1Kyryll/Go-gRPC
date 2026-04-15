@@ -12,7 +12,7 @@ type ctxKey string
 const loadersKey ctxKey = "dataloaders"
 
 type Loaders struct {
-	CustomerByID        *CustomerLoader
+	UserByID            *UserLoader
 	MenuItemByID        *MenuItemLoader
 	TicketByOrderID     *TicketLoader
 	OrderItemsByOrderID *OrderItemsLoader
@@ -20,7 +20,7 @@ type Loaders struct {
 
 func NewLoaders(queries *sqlc.Queries) *Loaders {
 	return &Loaders{
-		CustomerByID:        NewCustomerLoader(queries),
+		UserByID:            NewUserLoader(queries),
 		MenuItemByID:        NewMenuItemLoader(queries),
 		TicketByOrderID:     NewTicketLoader(queries),
 		OrderItemsByOrderID: NewOrderItemsLoader(queries),

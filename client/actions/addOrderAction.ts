@@ -13,10 +13,10 @@ export const addOrderAction = async (
   formData: FormData,
   items: OrderItem[]
 ): Promise<CreateOrderResult> => {
-  const customer_id = formData.get("customer_id") as string;
+  const user_id = formData.get("user_id") as string;
 
-  if (!customer_id) {
-    return { success: false, errors: [{ field: "customerId", message: "Customer ID is required" }] };
+  if (!user_id) {
+    return { success: false, errors: [{ field: "userId", message: "User ID is required" }] };
   }
 
   if (items.length === 0) {
@@ -38,7 +38,7 @@ export const addOrderAction = async (
       }`,
       {
         input: {
-          customerId: parseInt(customer_id),
+          userId: parseInt(user_id),
           items: items.map((item) => ({
             menuItemId: item.menuItemId,
             quantity: item.quantity,

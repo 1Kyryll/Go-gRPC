@@ -25,10 +25,10 @@ import (
 
 // enrichedOrder is what we broadcast over SSE — the gRPC Order enriched with item names.
 type enrichedOrder struct {
-	ID         int32    `json:"id"`
-	CustomerID int32    `json:"customer_id"`
-	Status     string   `json:"status"`
-	Items      []string `json:"items"`
+	ID     int32    `json:"id"`
+	UserID int32    `json:"user_id"`
+	Status string   `json:"status"`
+	Items  []string `json:"items"`
 }
 
 func main() {
@@ -86,7 +86,7 @@ func main() {
 				return
 			}
 
-			log.Printf("NEW ORDER: id=%d customer=%d status=%s",
+			log.Printf("NEW ORDER: id=%d user=%d status=%s",
 				order.Id, order.CustomerId, order.Status)
 
 			// Create a ticket for this order
@@ -100,13 +100,13 @@ func main() {
 
 			// Enrich the order with item names from the database
 			enriched := enrichedOrder{
-				ID:         order.Id,
-				CustomerID: order.CustomerId,
-				Status:     order.Status,
-				Items:      []string{},
+				ID:     order.Id,
+				UserID: order.CustomerId,
+				Status: order.Status,
+				Items:  []string{},
 			}
 
-			orderItems, err := queries.GetOrderItemsByOrderID(context.Background(), order.Id)
+			orderItems, err := queries.GetOrderItemsByOrderIDs(context.Background(), []int32{order.Id})
 			if err != nil {
 				log.Printf("Failed to fetch items for order %d: %v", order.Id, err)
 			} else {

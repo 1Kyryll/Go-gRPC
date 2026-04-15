@@ -14,7 +14,7 @@ import (
 const cancelOrder = `-- name: CancelOrder :one
 UPDATE orders SET status = 'CANCELLED', updated_at = NOW()
 WHERE id = $1
-RETURNING id, customer_id, status, created_at, updated_at
+RETURNING id, user_id, status, created_at, updated_at
 `
 
 func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
@@ -22,7 +22,7 @@ func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
 	var i Order
 	err := row.Scan(
 		&i.ID,
-		&i.CustomerID,
+		&i.UserID,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -31,7 +31,7 @@ func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
 }
 
 const completeOrder = `-- name: CompleteOrder :exec
-UPDATE orders SET status = 'COMPLETED', updated_at = NOW()
+UPDATE orders SET status = 'completed', updated_at = NOW()
 WHERE id = $1
 `
 
@@ -41,7 +41,7 @@ func (q *Queries) CompleteOrder(ctx context.Context, id int32) error {
 }
 
 const completeTicketByOrderID = `-- name: CompleteTicketByOrderID :exec
-UPDATE tickets SET status = 'DONE', updated_at = NOW()
+UPDATE tickets SET status = 'done', updated_at = NOW()
 WHERE order_id = $1
 `
 
@@ -74,54 +74,27 @@ func (q *Queries) CountOrders(ctx context.Context, status string) (int64, error)
 	return count, err
 }
 
-const countOrdersByCustomerID = `-- name: CountOrdersByCustomerID :one
+const countOrdersByUserID = `-- name: CountOrdersByUserID :one
 SELECT count(*) FROM orders
-WHERE customer_id = $1
+WHERE user_id = $1
 `
 
-func (q *Queries) CountOrdersByCustomerID(ctx context.Context, customerID int32) (int64, error) {
-	row := q.db.QueryRow(ctx, countOrdersByCustomerID, customerID)
+func (q *Queries) CountOrdersByUserID(ctx context.Context, userID int32) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrdersByUserID, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const createCustomer = `-- name: CreateCustomer :one
-
-INSERT INTO customers (name, email, phone)
-VALUES ($1, $2, $3)
-RETURNING id, name, email, phone, created_at
-`
-
-type CreateCustomerParams struct {
-	Name  string      `json:"name"`
-	Email string      `json:"email"`
-	Phone pgtype.Text `json:"phone"`
-}
-
-// Customers
-func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error) {
-	row := q.db.QueryRow(ctx, createCustomer, arg.Name, arg.Email, arg.Phone)
-	var i Customer
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Phone,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (customer_id, status)
+INSERT INTO orders (user_id, status)
 VALUES ($1, $2)
 RETURNING id, status, created_at
 `
 
 type CreateOrderParams struct {
-	CustomerID int32  `json:"customer_id"`
-	Status     string `json:"status"`
+	UserID int32  `json:"user_id"`
+	Status string `json:"status"`
 }
 
 type CreateOrderRow struct {
@@ -131,7 +104,7 @@ type CreateOrderRow struct {
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
-	row := q.db.QueryRow(ctx, createOrder, arg.CustomerID, arg.Status)
+	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.Status)
 	var i CreateOrderRow
 	err := row.Scan(&i.ID, &i.Status, &i.CreatedAt)
 	return i, err
@@ -193,53 +166,39 @@ func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (Cre
 	return i, err
 }
 
-const getCustomerByID = `-- name: GetCustomerByID :one
-SELECT id, name, email, phone, created_at FROM customers
-WHERE id = $1
+const createUser = `-- name: CreateUser :one
+
+INSERT INTO users (username, email, password_hash, phone)
+VALUES ($1, $2, $3, $4)
+RETURNING id, username, email, password_hash, phone, created_at, updated_at
 `
 
-func (q *Queries) GetCustomerByID(ctx context.Context, id int32) (Customer, error) {
-	row := q.db.QueryRow(ctx, getCustomerByID, id)
-	var i Customer
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Phone,
-		&i.CreatedAt,
-	)
-	return i, err
+type CreateUserParams struct {
+	Username     string      `json:"username"`
+	Email        string      `json:"email"`
+	PasswordHash string      `json:"password_hash"`
+	Phone        pgtype.Text `json:"phone"`
 }
 
-const getCustomersByIDs = `-- name: GetCustomersByIDs :many
-SELECT id, name, email, phone, created_at FROM customers
-WHERE id = ANY($1::int[])
-`
-
-func (q *Queries) GetCustomersByIDs(ctx context.Context, dollar_1 []int32) ([]Customer, error) {
-	rows, err := q.db.Query(ctx, getCustomersByIDs, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Customer
-	for rows.Next() {
-		var i Customer
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Email,
-			&i.Phone,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+// Users
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Phone,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Phone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getMenuItemByID = `-- name: GetMenuItemByID :one
@@ -346,7 +305,7 @@ func (q *Queries) GetMenuItemsPaginated(ctx context.Context, arg GetMenuItemsPag
 }
 
 const getOrderByID = `-- name: GetOrderByID :one
-SELECT id, customer_id, status, created_at, updated_at FROM orders
+SELECT id, user_id, status, created_at, updated_at FROM orders
 WHERE id = $1
 `
 
@@ -355,43 +314,12 @@ func (q *Queries) GetOrderByID(ctx context.Context, id int32) (Order, error) {
 	var i Order
 	err := row.Scan(
 		&i.ID,
-		&i.CustomerID,
+		&i.UserID,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getOrderItemsByOrderID = `-- name: GetOrderItemsByOrderID :many
-SELECT id, order_id, menu_item_id, quantity, special_instructions FROM order_items
-WHERE order_id = $1
-`
-
-func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int32) ([]OrderItem, error) {
-	rows, err := q.db.Query(ctx, getOrderItemsByOrderID, orderID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []OrderItem
-	for rows.Next() {
-		var i OrderItem
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrderID,
-			&i.MenuItemID,
-			&i.Quantity,
-			&i.SpecialInstructions,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getOrderItemsByOrderIDs = `-- name: GetOrderItemsByOrderIDs :many
@@ -426,12 +354,12 @@ func (q *Queries) GetOrderItemsByOrderIDs(ctx context.Context, dollar_1 []int32)
 }
 
 const getOrders = `-- name: GetOrders :many
-SELECT id, customer_id, status, created_at, updated_at FROM orders
-WHERE customer_id = $1
+SELECT id, user_id, status, created_at, updated_at FROM orders
+WHERE user_id = $1
 `
 
-func (q *Queries) GetOrders(ctx context.Context, customerID int32) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getOrders, customerID)
+func (q *Queries) GetOrders(ctx context.Context, userID int32) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrders, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -441,7 +369,7 @@ func (q *Queries) GetOrders(ctx context.Context, customerID int32) ([]Order, err
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
-			&i.CustomerID,
+			&i.UserID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -456,22 +384,22 @@ func (q *Queries) GetOrders(ctx context.Context, customerID int32) ([]Order, err
 	return items, nil
 }
 
-const getOrdersByCustomerIDPaginated = `-- name: GetOrdersByCustomerIDPaginated :many
-SELECT id, customer_id, status, created_at, updated_at FROM orders
-WHERE customer_id = $1
+const getOrdersByUserIDPaginated = `-- name: GetOrdersByUserIDPaginated :many
+SELECT id, user_id, status, created_at, updated_at FROM orders
+WHERE user_id = $1
     AND (CASE WHEN $2::int > 0 THEN id > $2 ELSE TRUE END)
 ORDER BY id ASC
 LIMIT $3
 `
 
-type GetOrdersByCustomerIDPaginatedParams struct {
-	CustomerID int32 `json:"customer_id"`
-	AfterID    int32 `json:"after_id"`
-	PageLimit  int32 `json:"page_limit"`
+type GetOrdersByUserIDPaginatedParams struct {
+	UserID    int32 `json:"user_id"`
+	AfterID   int32 `json:"after_id"`
+	PageLimit int32 `json:"page_limit"`
 }
 
-func (q *Queries) GetOrdersByCustomerIDPaginated(ctx context.Context, arg GetOrdersByCustomerIDPaginatedParams) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getOrdersByCustomerIDPaginated, arg.CustomerID, arg.AfterID, arg.PageLimit)
+func (q *Queries) GetOrdersByUserIDPaginated(ctx context.Context, arg GetOrdersByUserIDPaginatedParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersByUserIDPaginated, arg.UserID, arg.AfterID, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -481,7 +409,7 @@ func (q *Queries) GetOrdersByCustomerIDPaginated(ctx context.Context, arg GetOrd
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
-			&i.CustomerID,
+			&i.UserID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -498,7 +426,7 @@ func (q *Queries) GetOrdersByCustomerIDPaginated(ctx context.Context, arg GetOrd
 
 const getOrdersPaginated = `-- name: GetOrdersPaginated :many
 
-SELECT id, customer_id, status, created_at, updated_at FROM orders
+SELECT id, user_id, status, created_at, updated_at FROM orders
 WHERE (CASE WHEN $1::int > 0 THEN id > $1 ELSE TRUE END)
     AND (CASE WHEN $2::text != '' THEN status = $2 ELSE TRUE END)
 ORDER BY id ASC
@@ -523,7 +451,7 @@ func (q *Queries) GetOrdersPaginated(ctx context.Context, arg GetOrdersPaginated
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
-			&i.CustomerID,
+			&i.UserID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -602,26 +530,48 @@ func (q *Queries) GetTicketsByOrderIDs(ctx context.Context, dollar_1 []int32) ([
 	return items, nil
 }
 
-const searchCustomers = `-- name: SearchCustomers :many
-SELECT id, name, email, phone, created_at FROM customers
-WHERE name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+WHERE id = $1
 `
 
-func (q *Queries) SearchCustomers(ctx context.Context, dollar_1 pgtype.Text) ([]Customer, error) {
-	rows, err := q.db.Query(ctx, searchCustomers, dollar_1)
+func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Phone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUsersByIDs = `-- name: GetUsersByIDs :many
+SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+WHERE id = ANY($1::int[])
+`
+
+func (q *Queries) GetUsersByIDs(ctx context.Context, dollar_1 []int32) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsersByIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Customer
+	var items []User
 	for rows.Next() {
-		var i Customer
+		var i User
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
+			&i.Username,
 			&i.Email,
+			&i.PasswordHash,
 			&i.Phone,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -670,7 +620,7 @@ func (q *Queries) SearchMenuItems(ctx context.Context, dollar_1 pgtype.Text) ([]
 
 const searchOrders = `-- name: SearchOrders :many
 
-SELECT id, customer_id, status, created_at, updated_at FROM orders
+SELECT id, user_id, status, created_at, updated_at FROM orders
 WHERE CAST(id AS TEXT) ILIKE '%' || $1 || '%'
 `
 
@@ -686,8 +636,41 @@ func (q *Queries) SearchOrders(ctx context.Context, dollar_1 pgtype.Text) ([]Ord
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
-			&i.CustomerID,
+			&i.UserID,
 			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchUsers = `-- name: SearchUsers :many
+SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
+`
+
+func (q *Queries) SearchUsers(ctx context.Context, dollar_1 pgtype.Text) ([]User, error) {
+	rows, err := q.db.Query(ctx, searchUsers, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.PasswordHash,
+			&i.Phone,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -704,7 +687,7 @@ func (q *Queries) SearchOrders(ctx context.Context, dollar_1 pgtype.Text) ([]Ord
 const updateOrderStatus = `-- name: UpdateOrderStatus :one
 UPDATE orders SET status = $2, updated_at = NOW()
 WHERE id = $1
-RETURNING id, customer_id, status, created_at, updated_at
+RETURNING id, user_id, status, created_at, updated_at
 `
 
 type UpdateOrderStatusParams struct {
@@ -717,7 +700,7 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusPa
 	var i Order
 	err := row.Scan(
 		&i.ID,
-		&i.CustomerID,
+		&i.UserID,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,

@@ -1,10 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO customers (name, email, phone) VALUES
-    ('John Doe', 'john@example.com', '+1234567890'),
-    ('Jane Smith', 'jane@example.com', '+0987654321'),
-    ('Bob Wilson', 'bob@example.com', NULL);
-
 INSERT INTO menu_items (name, description, price, category, is_available, contains_allergens, is_alcoholic) VALUES
     ('Caesar Salad', 'Romaine lettuce with caesar dressing and croutons', 8.99, 'APPETIZER', true, ARRAY['gluten', 'dairy'], NULL),
     ('Garlic Bread', 'Toasted bread with garlic butter', 5.49, 'APPETIZER', true, ARRAY['gluten', 'dairy'], NULL),
@@ -21,5 +16,4 @@ INSERT INTO menu_items (name, description, price, category, is_available, contai
 -- +goose Down
 -- +goose StatementBegin
 DELETE FROM menu_items;
-DELETE FROM customers;
 -- +goose StatementEnd

@@ -8,7 +8,7 @@ type Order = {
   status: string;
   totalPrice: number;
   createdAt: string;
-  customer: { id: string; name: string } | null;
+  user: { id: string; username: string } | null;
 };
 
 type Props = {
@@ -50,7 +50,7 @@ export default async function OrdersPage({ searchParams }: Props) {
             status
             totalPrice
             createdAt
-            customer { id, name }
+            user { id, username }
           }
         }
         totalCount
@@ -87,9 +87,9 @@ export default async function OrdersPage({ searchParams }: Props) {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="font-bold">Order #{order.id}</span>
-                    {order.customer && (
+                    {order.user && (
                       <span className="text-sm text-gray-500 ml-2">
-                        {order.customer.name}
+                        {order.user.username}
                       </span>
                     )}
                   </div>

@@ -1,0 +1,7 @@
+type Query {
+    order(id: ID!): Order
+    orders(first: Int, after: String, status: OrderStatus): OrderConnection!
+    user(id: ID!): User
+    menuItems(first: Int, after: String, category: MenuCategory): MenuItemConnection!
+    search(query: String!): [SearchResult!]!
+}

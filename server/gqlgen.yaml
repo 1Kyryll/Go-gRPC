@@ -1,5 +1,5 @@
-schema: 
-  - internal/services/gateway/graph/*.graphqls
+schema:
+  - internal/services/gateway/graph/schema/*.graphqls
 exec:
   filename: internal/services/gateway/graph/generated.go
   package: graph
@@ -22,7 +22,7 @@ models:
     model:
       - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.Order
     fields:
-      customer:
+      user:
         resolver: true
       items:
         resolver: true
@@ -38,9 +38,7 @@ models:
         resolver: true
       subtotal:
         resolver: true
-  Customer:
-    model:
-      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.Customer
+  User:
     fields:
       orders:
         resolver: true

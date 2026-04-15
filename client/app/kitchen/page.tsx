@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 
 type Order = {
   id: number;
-  customer_id: number;
+  user_id: number;
   items?: string[];
   status: string;
 };
@@ -105,7 +105,7 @@ export default function KitchenPage() {
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
               <span className="font-bold">Order #{order.id}</span>
               <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-                Customer {order.customer_id}
+                User {order.user_id}
               </span>
             </div>
             <div className="p-4">

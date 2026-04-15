@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type MenuItem interface {
@@ -24,8 +25,8 @@ type SearchResult interface {
 }
 
 type CreateOrderInput struct {
-	CustomerID string            `json:"customerId"`
-	Items      []*OrderItemInput `json:"items"`
+	UserID string            `json:"userId"`
+	Items  []*OrderItemInput `json:"items"`
 }
 
 type CreateOrderPayload struct {
@@ -116,6 +117,18 @@ type Query struct {
 
 type Subscription struct {
 }
+
+type User struct {
+	ID        string           `json:"id"`
+	Username  string           `json:"username"`
+	Email     string           `json:"email"`
+	Phone     *string          `json:"phone,omitempty"`
+	Orders    *OrderConnection `json:"orders"`
+	CreatedAt time.Time        `json:"createdAt"`
+	UpdatedAt time.Time        `json:"updatedAt"`
+}
+
+func (User) IsSearchResult() {}
 
 type ValidationError struct {
 	Field   string `json:"field"`

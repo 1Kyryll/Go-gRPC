@@ -8,14 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Customer struct {
-	ID        int32              `json:"id"`
-	Name      string             `json:"name"`
-	Email     string             `json:"email"`
-	Phone     pgtype.Text        `json:"phone"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-}
-
 type MenuItem struct {
 	ID                int32              `json:"id"`
 	Name              string             `json:"name"`
@@ -29,11 +21,11 @@ type MenuItem struct {
 }
 
 type Order struct {
-	ID         int32              `json:"id"`
-	CustomerID int32              `json:"customer_id"`
-	Status     string             `json:"status"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID        int32              `json:"id"`
+	UserID    int32              `json:"user_id"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OrderItem struct {
@@ -50,4 +42,14 @@ type Ticket struct {
 	Status    string             `json:"status"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type User struct {
+	ID           int32              `json:"id"`
+	Username     string             `json:"username"`
+	Email        string             `json:"email"`
+	PasswordHash string             `json:"password_hash"`
+	Phone        pgtype.Text        `json:"phone"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }

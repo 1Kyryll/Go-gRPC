@@ -1,0 +1,6 @@
+type Mutation {
+    createOrder(input: CreateOrderInput!): CreateOrderPayload!
+    updateOrderStatus(id: ID!, status: OrderStatus!): Order!
+    completeOrder(orderId: ID!): Order!
+    cancelOrder(orderId: ID!): Order!
+}

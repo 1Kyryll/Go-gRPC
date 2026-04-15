@@ -2,7 +2,7 @@ scalar DateTime
 
 enum OrderStatus {
     PENDING
-    CONFIRMED 
+    CONFIRMED
     COOKING
     COMPLETED
     CANCELLED
@@ -17,7 +17,7 @@ enum TicketStatus {
 enum MenuCategory {
     APPETIZER
     MAIN
-    DRINK 
+    DRINK
     DESSERT
 }
 
@@ -50,42 +50,6 @@ type DrinkItem implements MenuItem {
     isAlcoholic: Boolean!
 }
 
-type Customer {
-    id: ID!
-    name: String!
-    email: String!
-    phone: String
-    orders(first: Int, after: String): OrderConnection!
-    createdAt: DateTime!
-}
-
-type Order {
-    id: ID!
-    customer: Customer!
-    items: [OrderItem!]!
-    ticket: Ticket
-    totalPrice: Float!
-    status: OrderStatus!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-}
-
-type OrderItem {
-    id: ID!
-    menuItem: MenuItem!
-    quantity: Int!
-    specialInstructions: String
-    subtotal: Float!
-}
-
-type Ticket {
-    id: ID!
-    order: Order!
-    status: TicketStatus!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-}
-
 type OrderConnection {
     edges: [OrderEdge!]!
     pageInfo: PageInfo!
@@ -115,7 +79,7 @@ type PageInfo {
     endCursor: String
 }
 
-union SearchResult = FoodItem | DrinkItem | Order | Customer 
+union SearchResult = FoodItem | DrinkItem | Order | User
 
 type ValidationError {
     field: String!
@@ -123,7 +87,7 @@ type ValidationError {
 }
 
 input CreateOrderInput {
-    customerId: ID!
+    userId: ID!
     items: [OrderItemInput!]!
 }
 
@@ -137,24 +101,3 @@ type CreateOrderPayload {
     order: Order
     errors: [ValidationError!]
 }
-
-type Query {
-    order(id: ID!): Order
-    orders(first: Int, after: String, status: OrderStatus): OrderConnection!
-    customer(id: ID!): Customer
-    menuItems(first: Int, after: String, category: MenuCategory): MenuItemConnection!
-    search(query: String!): [SearchResult!]!
-}
-
-type Mutation {
-    createOrder(input: CreateOrderInput!): CreateOrderPayload!
-    updateOrderStatus(id: ID!, status: OrderStatus!): Order!
-    completeOrder(orderId: ID!): Order!
-    cancelOrder(orderId: ID!): Order!
-}
-
-type Subscription {
-    orderCreated: Order!
-    orderStatusChanged(orderId: ID): Order!
-}
-

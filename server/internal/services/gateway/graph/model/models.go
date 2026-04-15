@@ -8,12 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Custom Order with internal CustomerID for DataLoader resolution.
+// Custom Order with internal UserID for DataLoader resolution.
 // Overrides the gqlgen-generated Order so we can carry the DB foreign key.
 type Order struct {
-	ID         string      `json:"id"`
-	CustomerID int32       `json:"-"`
-	Customer   *Customer   `json:"customer"`
+	ID     string    `json:"id"`
+	UserID int32     `json:"-"`
+	User   *User     `json:"user"`
 	Items      []*OrderItem `json:"items"`
 	Ticket     *Ticket     `json:"ticket,omitempty"`
 	TotalPrice float64     `json:"totalPrice"`
@@ -43,18 +43,6 @@ type Ticket struct {
 	CreatedAt time.Time    `json:"createdAt"`
 	UpdatedAt time.Time    `json:"updatedAt"`
 }
-
-// Custom Customer to handle pgtype.Text -> *string for Phone.
-type Customer struct {
-	ID        string           `json:"id"`
-	Name      string           `json:"name"`
-	Email     string           `json:"email"`
-	Phone     *string          `json:"phone,omitempty"`
-	Orders    *OrderConnection `json:"orders"`
-	CreatedAt time.Time        `json:"createdAt"`
-}
-
-func (Customer) IsSearchResult() {}
 
 // MapMenuItem converts sqlc.MenuItem to the appropriate GraphQL MenuItem type.
 func MapMenuItem(item sqlc.MenuItem) MenuItem {

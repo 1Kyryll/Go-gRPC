@@ -9,7 +9,7 @@ type OrderDetail = {
   totalPrice: number;
   createdAt: string;
   updatedAt: string;
-  customer: { id: string; name: string; email: string } | null;
+  user: { id: string; username: string; email: string } | null;
   items: {
     id: string;
     menuItem: { name: string; price: number } | null;
@@ -53,7 +53,7 @@ export default async function OrderDetailPage({
           totalPrice
           createdAt
           updatedAt
-          customer { id, name, email }
+          user { id, username, email }
           items {
             id
             menuItem { name, price }
@@ -122,14 +122,14 @@ export default async function OrderDetailPage({
         </div>
 
         <div className="space-y-4">
-          {/* Customer info */}
-          {order.customer && (
+          {/* User info */}
+          {order.user && (
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <h2 className="text-sm font-medium text-gray-500 mb-2">
-                Customer
+                User
               </h2>
-              <p className="font-medium">{order.customer.name}</p>
-              <p className="text-sm text-gray-500">{order.customer.email}</p>
+              <p className="font-medium">{order.user.username}</p>
+              <p className="text-sm text-gray-500">{order.user.email}</p>
             </div>
           )}
 

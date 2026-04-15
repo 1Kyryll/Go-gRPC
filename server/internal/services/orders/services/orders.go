@@ -24,8 +24,8 @@ func NewOrdersService(queries *sqlc.Queries) *OrdersService {
 
 func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrderRequest) (*orders.Order, error) {
 	orderRow, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
-		CustomerID: req.CustomerId,
-		Status:     "PENDING",
+		UserID: req.CustomerId,
+		Status: "PENDING",
 	})
 	if err != nil {
 		return nil, err
@@ -70,8 +70,8 @@ func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrder
 	return order, nil
 }
 
-func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*orders.Order, error) {
-	dbOrders, err := s.queries.GetOrders(ctx, customerID)
+func (s *OrdersService) GetOrders(ctx context.Context, userID int32) ([]*orders.Order, error) {
+	dbOrders, err := s.queries.GetOrders(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *OrdersService) GetOrders(ctx context.Context, customerID int32) ([]*ord
 	for i, o := range dbOrders {
 		result[i] = &orders.Order{
 			Id:         o.ID,
-			CustomerId: o.CustomerID,
+			CustomerId: o.UserID,
 			Status:     o.Status,
 		}
 	}
