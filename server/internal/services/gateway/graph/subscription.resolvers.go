@@ -7,16 +7,23 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
 
 	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
 
 // OrderCreated streams newly created orders via the gRPC StreamCreatedOrders RPC.
+// Kitchen staff only.
 func (r *subscriptionResolver) OrderCreated(ctx context.Context) (<-chan *model.Order, error) {
+	if _, err := middleware.RequireRole(ctx, middleware.RoleKitchenStaff); err != nil {
+		return nil, err
+	}
+
 	stream, err := r.grpcClient.StreamCreatedOrders(ctx, &orders.StreamCreatedOrdersRequest{})
 	if err != nil {
 		return nil, err
@@ -54,7 +61,31 @@ func (r *subscriptionResolver) OrderCreated(ctx context.Context) (<-chan *model.
 }
 
 // OrderStatusChanged streams order status updates, optionally filtered by order ID.
+// Customers can only receive updates for their own orders.
 func (r *subscriptionResolver) OrderStatusChanged(ctx context.Context, orderID *string) (<-chan *model.Order, error) {
+	authUser, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Customers must specify an order ID and it must be their own
+	if authUser.Role == middleware.RoleCustomer {
+		if orderID == nil {
+			return nil, fmt.Errorf("Customers must specify an order ID")
+		}
+		targetID, err := strconv.Atoi(*orderID)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid order ID")
+		}
+		order, err := r.queries.GetOrderByID(ctx, int32(targetID))
+		if err != nil {
+			return nil, fmt.Errorf("Order not found")
+		}
+		if fmt.Sprintf("%d", order.UserID) != authUser.ID {
+			return nil, fmt.Errorf("Cannot subscribe to other users' orders")
+		}
+	}
+
 	ch := make(chan *orders.Order, 16)
 
 	r.mu.Lock()

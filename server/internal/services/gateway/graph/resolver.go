@@ -66,6 +66,7 @@ func mapUser(u sqlc.User) *model.User {
 		Username:  u.Username,
 		Email:     u.Email,
 		Phone:     model.TextToStringPtr(u.Phone),
+		Role:      u.Role,
 		CreatedAt: model.TimestampToTime(u.CreatedAt),
 		UpdatedAt: model.TimestampToTime(u.UpdatedAt),
 	}

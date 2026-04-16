@@ -17,6 +17,7 @@ import (
 	"github.com/1kyryll/go-grpc/internal/common/gen/kitchen"
 	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	kitchenHandlers "github.com/1kyryll/go-grpc/internal/services/kitchen/handlers"
 	kitchenService "github.com/1kyryll/go-grpc/internal/services/kitchen/services"
 	"google.golang.org/grpc"
@@ -153,7 +154,7 @@ func main() {
 
 	go func() {
 		log.Println("Kitchen HTTP server is running on :8081")
-		if err := http.ListenAndServe(":8081", cors(mux)); err != nil {
+		if err := http.ListenAndServe(":8081", middleware.AuthMiddleware()(cors(mux))); err != nil {
 			log.Fatalf("Kitchen HTTP server failed: %v", err)
 		}
 	}()
@@ -168,7 +169,7 @@ func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return

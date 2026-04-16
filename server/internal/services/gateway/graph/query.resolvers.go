@@ -8,13 +8,20 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
 
 // Order is the resolver for the order field.
 func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, error) {
+	authUser, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	orderID, err := parseID(id)
 	if err != nil {
 		return nil, err
@@ -25,18 +32,28 @@ func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, err
 		return nil, fmt.Errorf("order %s not found: %w", id, err)
 	}
 
+	if authUser.Role == middleware.RoleCustomer {
+		if fmt.Sprintf("%d", row.UserID) != authUser.ID {
+			return nil, fmt.Errorf("Cannot view other users' orders")
+		}
+	}
+
 	return mapOrder(row), nil
 }
 
 // Orders is the resolver for the orders field.
 func (r *queryResolver) Orders(ctx context.Context, first *int, after *string, status *model.OrderStatus) (*model.OrderConnection, error) {
+	authUser, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	limit := int32(20)
 	if first != nil {
 		limit = int32(*first)
 	}
 
 	var afterID int32
-	var err error
 	if after != nil {
 		afterID, err = decodeCursor(*after)
 		if err != nil {
@@ -44,18 +61,43 @@ func (r *queryResolver) Orders(ctx context.Context, first *int, after *string, s
 		}
 	}
 
-	var statusStr string
-	if status != nil {
-		statusStr = status.String()
-	}
+	var rows []sqlc.Order
+	var totalCount int64
 
-	rows, err := r.queries.GetOrdersPaginated(ctx, sqlc.GetOrdersPaginatedParams{
-		AfterID:   afterID,
-		Status:    statusStr,
-		PageLimit: limit + 1,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("fetching orders: %w", err)
+	if authUser.Role == middleware.RoleCustomer {
+		userID, _ := strconv.Atoi(authUser.ID)
+		rows, err = r.queries.GetOrdersByUserIDPaginated(ctx, sqlc.GetOrdersByUserIDPaginatedParams{
+			UserID:    int32(userID),
+			AfterID:   afterID,
+			PageLimit: limit + 1,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching orders: %w", err)
+		}
+
+		totalCount, err = r.queries.CountOrdersByUserID(ctx, int32(userID))
+		if err != nil {
+			return nil, fmt.Errorf("counting orders: %w", err)
+		}
+	} else {
+		var statusStr string
+		if status != nil {
+			statusStr = status.String()
+		}
+
+		rows, err = r.queries.GetOrdersPaginated(ctx, sqlc.GetOrdersPaginatedParams{
+			AfterID:   afterID,
+			Status:    statusStr,
+			PageLimit: limit + 1,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching orders: %w", err)
+		}
+
+		totalCount, err = r.queries.CountOrders(ctx, statusStr)
+		if err != nil {
+			return nil, fmt.Errorf("counting orders: %w", err)
+		}
 	}
 
 	hasNext := len(rows) > int(limit)
@@ -77,11 +119,6 @@ func (r *queryResolver) Orders(ctx context.Context, first *int, after *string, s
 		endCursor = &edges[len(edges)-1].Cursor
 	}
 
-	totalCount, err := r.queries.CountOrders(ctx, statusStr)
-	if err != nil {
-		return nil, fmt.Errorf("counting orders: %w", err)
-	}
-
 	return &model.OrderConnection{
 		Edges: edges,
 		PageInfo: &model.PageInfo{
@@ -96,6 +133,15 @@ func (r *queryResolver) Orders(ctx context.Context, first *int, after *string, s
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	authUser, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if authUser.Role == middleware.RoleCustomer && authUser.ID != id {
+		return nil, fmt.Errorf("Can only view your own profile")
+	}
+
 	userID, err := parseID(id)
 	if err != nil {
 		return nil, err
@@ -181,6 +227,7 @@ func (r *queryResolver) Search(ctx context.Context, query string) ([]model.Searc
 
 	var results []model.SearchResult
 
+	// Menu items are public
 	menuItems, err := r.queries.SearchMenuItems(ctx, searchTerm)
 	if err != nil {
 		return nil, fmt.Errorf("searching menu items: %w", err)
@@ -189,12 +236,20 @@ func (r *queryResolver) Search(ctx context.Context, query string) ([]model.Searc
 		results = append(results, model.MapMenuItem(item).(model.SearchResult))
 	}
 
-	users, err := r.queries.SearchUsers(ctx, searchTerm)
-	if err != nil {
-		return nil, fmt.Errorf("searching users: %w", err)
+	// Users and orders require auth
+	authUser, _ := middleware.GetCurrentUserFromCTX(ctx)
+	if authUser == nil {
+		return results, nil
 	}
-	for _, u := range users {
-		results = append(results, mapUser(u))
+
+	if authUser.Role == middleware.RoleKitchenStaff {
+		users, err := r.queries.SearchUsers(ctx, searchTerm)
+		if err != nil {
+			return nil, fmt.Errorf("searching users: %w", err)
+		}
+		for _, u := range users {
+			results = append(results, mapUser(u))
+		}
 	}
 
 	searchOrders, err := r.queries.SearchOrders(ctx, searchTerm)
@@ -202,6 +257,11 @@ func (r *queryResolver) Search(ctx context.Context, query string) ([]model.Searc
 		return nil, fmt.Errorf("searching orders: %w", err)
 	}
 	for _, o := range searchOrders {
+		if authUser.Role == middleware.RoleCustomer {
+			if fmt.Sprintf("%d", o.UserID) != authUser.ID {
+				continue
+			}
+		}
 		results = append(results, mapOrder(o))
 	}
 

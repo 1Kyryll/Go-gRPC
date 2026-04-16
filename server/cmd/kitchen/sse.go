@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/1kyryll/go-grpc/internal/middleware"
 )
 
 type SSEServer struct {
@@ -57,8 +59,13 @@ func (s *SSEServer) Broadcast(data any) {
 	}
 }
 
-// ServeHTTP handles GET /stream — the SSE endpoint.
+// ServeHTTP handles GET /stream — the SSE endpoint. Kitchen staff only.
 func (s *SSEServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if _, err := middleware.RequireRole(r.Context(), middleware.RoleKitchenStaff); err != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)

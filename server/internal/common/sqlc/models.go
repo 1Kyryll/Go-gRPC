@@ -52,4 +52,5 @@ type User struct {
 	Phone        pgtype.Text        `json:"phone"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Role         string             `json:"role"`
 }

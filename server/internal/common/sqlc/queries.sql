@@ -41,8 +41,8 @@ RETURNING id, user_id, status, created_at, updated_at;
 -- Users 
 
 -- name: CreateUser :one
-INSERT INTO users (username, email, password_hash, phone)
-VALUES ($1, $2, $3, $4)
+INSERT INTO users (username, email, password_hash, phone, role)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetUserByID :one

@@ -17,6 +17,7 @@ const CurrentUserKey contextKey = "currentUser"
 type AuthUser struct {
 	ID       string
 	Username string
+	Role     string
 }
 
 func AuthMiddleware() func(http.Handler) http.Handler {
@@ -47,10 +48,12 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 
 			sub, _ := claims["sub"].(string)
 			username, _ := claims["username"].(string)
+			role, _ := claims["role"].(string)
 
 			user := &AuthUser{
 				ID:       sub,
 				Username: username,
+				Role:     role,
 			}
 
 			ctx := context.WithValue(r.Context(), CurrentUserKey, user)

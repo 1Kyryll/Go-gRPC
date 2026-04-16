@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	"github.com/1kyryll/go-grpc/internal/services/kitchen/types"
 	"github.com/1kyryll/go-grpc/internal/util"
 )
@@ -23,6 +24,11 @@ func (h *KitchenHTTPHandler) RegisterRoutes(router *http.ServeMux) {
 }
 
 func (h *KitchenHTTPHandler) GetTickets(w http.ResponseWriter, r *http.Request) {
+	if _, err := middleware.RequireRole(r.Context(), middleware.RoleKitchenStaff); err != nil {
+		util.WriteError(w, http.StatusForbidden, err)
+		return
+	}
+
 	orderID, err := strconv.Atoi(r.PathValue("orderId"))
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))
@@ -43,6 +49,11 @@ func (h *KitchenHTTPHandler) GetTickets(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *KitchenHTTPHandler) CompleteOrder(w http.ResponseWriter, r *http.Request) {
+	if _, err := middleware.RequireRole(r.Context(), middleware.RoleKitchenStaff); err != nil {
+		util.WriteError(w, http.StatusForbidden, err)
+		return
+	}
+
 	orderID, err := strconv.Atoi(r.PathValue("orderId"))
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order ID: %v", err))

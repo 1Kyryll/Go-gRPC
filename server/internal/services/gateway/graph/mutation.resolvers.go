@@ -14,6 +14,7 @@ import (
 	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/common/gen/user"
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
 
@@ -49,6 +50,7 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 			Username: resp.User.Username,
 			Email:    resp.User.Email,
 			Phone:    phonePtr,
+			Role:     resp.User.Role,
 		},
 	}, nil
 }
@@ -78,6 +80,7 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 			Username: resp.User.Username,
 			Email:    resp.User.Email,
 			Phone:    phonePtr,
+			Role:     resp.User.Role,
 		},
 	}, nil
 }
@@ -91,6 +94,14 @@ func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOr
 			Field:   "items",
 			Message: "at least one item is required",
 		})
+	}
+
+	authUser, err := middleware.RequireRole(ctx, middleware.RoleCustomer)
+	if err != nil {
+		return nil, err
+	}
+	if input.UserID != authUser.ID {
+		return nil, fmt.Errorf("Cannot create orders for other Users")
 	}
 
 	userID, err := strconv.Atoi(input.UserID)
@@ -178,6 +189,10 @@ func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOr
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
 func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, status model.OrderStatus) (*model.Order, error) {
+	if _, err := middleware.RequireRole(ctx, middleware.RoleKitchenStaff); err != nil {
+		return nil, err
+	}
+
 	orderID, err := parseID(id)
 	if err != nil {
 		return nil, err
@@ -198,6 +213,10 @@ func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, sta
 
 // CompleteOrder is the resolver for the completeOrder field.
 func (r *mutationResolver) CompleteOrder(ctx context.Context, orderID string) (*model.Order, error) {
+	if _, err := middleware.RequireRole(ctx, middleware.RoleKitchenStaff); err != nil {
+		return nil, err
+	}
+
 	id, err := parseID(orderID)
 	if err != nil {
 		return nil, err
@@ -222,6 +241,10 @@ func (r *mutationResolver) CompleteOrder(ctx context.Context, orderID string) (*
 
 // CancelOrder is the resolver for the cancelOrder field.
 func (r *mutationResolver) CancelOrder(ctx context.Context, orderID string) (*model.Order, error) {
+	if _, err := middleware.RequireRole(ctx, middleware.RoleCustomer); err != nil {
+		return nil, err
+	}
+
 	id, err := parseID(orderID)
 	if err != nil {
 		return nil, err

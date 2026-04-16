@@ -161,6 +161,7 @@ type ComplexityRoot struct {
 		ID        func(childComplexity int) int
 		Orders    func(childComplexity int, first *int, after *string) int
 		Phone     func(childComplexity int) int
+		Role      func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 		Username  func(childComplexity int) int
 	}
@@ -723,6 +724,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.User.Phone(childComplexity), true
+	case "User.role":
+		if e.ComplexityRoot.User.Role == nil {
+			break
+		}
+
+		return e.ComplexityRoot.User.Role(childComplexity), true
 	case "User.updatedAt":
 		if e.ComplexityRoot.User.UpdatedAt == nil {
 			break
@@ -1179,6 +1186,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "orders":
 				return ec.fieldContext_User_orders(ctx, field)
 			case "createdAt":
@@ -2278,6 +2287,8 @@ func (ec *executionContext) fieldContext_Order_user(_ context.Context, field gra
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "orders":
 				return ec.fieldContext_User_orders(ctx, field)
 			case "createdAt":
@@ -3070,6 +3081,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "orders":
 				return ec.fieldContext_User_orders(ctx, field)
 			case "createdAt":
@@ -3665,6 +3678,35 @@ func (ec *executionContext) _User_phone(ctx context.Context, field graphql.Colle
 }
 
 func (ec *executionContext) fieldContext_User_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -6713,6 +6755,11 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "phone":
 			out.Values[i] = ec._User_phone(ctx, field, obj)
+		case "role":
+			out.Values[i] = ec._User_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "orders":
 			field := field
 

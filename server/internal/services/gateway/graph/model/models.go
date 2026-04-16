@@ -128,6 +128,7 @@ type User struct {
 	Username       string     `json:"username"`
 	Email          string     `json:"email"`
 	Phone          *string    `json:"phone,omitempty"`
+	Role           string     `json:"role"`
 	HashedPassword string     `json:"-"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`

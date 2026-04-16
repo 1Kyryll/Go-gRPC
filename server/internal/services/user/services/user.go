@@ -37,12 +37,13 @@ func (s *UserServiceImpl) Register(ctx context.Context, req *user.RegisterReques
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		Phone:        pgtype.Text{String: req.Phone, Valid: req.Phone != ""},
+		Role:         "CUSTOMER",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	accessToken, expiredAt, err := genToken(dbUser.ID, dbUser.Username)
+	accessToken, expiredAt, err := genToken(dbUser.ID, dbUser.Username, dbUser.Role)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -53,6 +54,7 @@ func (s *UserServiceImpl) Register(ctx context.Context, req *user.RegisterReques
 			Username: dbUser.Username,
 			Email:    dbUser.Email,
 			Phone:    textToString(dbUser.Phone),
+			Role:     dbUser.Role,
 		},
 		AccessToken: accessToken,
 		ExpiredAt:   expiredAt,
@@ -69,7 +71,7 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *user.LoginRequest) (*u
 		return nil, fmt.Errorf("invalid username or password")
 	}
 
-	accessToken, expiredAt, err := genToken(dbUser.ID, dbUser.Username)
+	accessToken, expiredAt, err := genToken(dbUser.ID, dbUser.Username, dbUser.Role)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -80,6 +82,7 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *user.LoginRequest) (*u
 			Username: dbUser.Username,
 			Email:    dbUser.Email,
 			Phone:    textToString(dbUser.Phone),
+			Role:     dbUser.Role,
 		},
 		AccessToken: accessToken,
 		ExpiredAt:   expiredAt,
@@ -97,15 +100,17 @@ func (s *UserServiceImpl) GetUser(ctx context.Context, id int32) (*user.User, er
 		Username: dbUser.Username,
 		Email:    dbUser.Email,
 		Phone:    textToString(dbUser.Phone),
+		Role:     dbUser.Role,
 	}, nil
 }
 
-func genToken(userID int32, username string) (string, int64, error) {
+func genToken(userID int32, username, role string) (string, int64, error) {
 	expiredAt := time.Now().Add(time.Hour * 24 * 7)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":      fmt.Sprintf("%d", userID),
 		"username": username,
+		"role":     role,
 		"exp":      expiredAt.Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "Restaurant",

@@ -168,9 +168,9 @@ func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (Cre
 
 const createUser = `-- name: CreateUser :one
 
-INSERT INTO users (username, email, password_hash, phone)
-VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, phone, created_at, updated_at
+INSERT INTO users (username, email, password_hash, phone, role)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, username, email, password_hash, phone, created_at, updated_at, role
 `
 
 type CreateUserParams struct {
@@ -178,6 +178,7 @@ type CreateUserParams struct {
 	Email        string      `json:"email"`
 	PasswordHash string      `json:"password_hash"`
 	Phone        pgtype.Text `json:"phone"`
+	Role         string      `json:"role"`
 }
 
 // Users
@@ -187,6 +188,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.PasswordHash,
 		arg.Phone,
+		arg.Role,
 	)
 	var i User
 	err := row.Scan(
@@ -197,6 +199,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Phone,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
@@ -531,7 +534,7 @@ func (q *Queries) GetTicketsByOrderIDs(ctx context.Context, dollar_1 []int32) ([
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, phone, created_at, updated_at, role FROM users
 WHERE id = $1
 `
 
@@ -546,12 +549,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 		&i.Phone,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, phone, created_at, updated_at, role FROM users
 WHERE username = $1
 `
 
@@ -566,12 +570,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Phone,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getUsersByIDs = `-- name: GetUsersByIDs :many
-SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, phone, created_at, updated_at, role FROM users
 WHERE id = ANY($1::int[])
 `
 
@@ -592,6 +597,7 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, dollar_1 []int32) ([]User, 
 			&i.Phone,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Role,
 		); err != nil {
 			return nil, err
 		}
@@ -672,7 +678,7 @@ func (q *Queries) SearchOrders(ctx context.Context, dollar_1 pgtype.Text) ([]Ord
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT id, username, email, password_hash, phone, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, phone, created_at, updated_at, role FROM users
 WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
 `
 
@@ -693,6 +699,7 @@ func (q *Queries) SearchUsers(ctx context.Context, dollar_1 pgtype.Text) ([]User
 			&i.Phone,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Role,
 		); err != nil {
 			return nil, err
 		}
