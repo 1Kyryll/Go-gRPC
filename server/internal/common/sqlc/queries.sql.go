@@ -31,7 +31,7 @@ func (q *Queries) CancelOrder(ctx context.Context, id int32) (Order, error) {
 }
 
 const completeOrder = `-- name: CompleteOrder :exec
-UPDATE orders SET status = 'completed', updated_at = NOW()
+UPDATE orders SET status = 'COMPLETED', updated_at = NOW()
 WHERE id = $1
 `
 
@@ -41,7 +41,7 @@ func (q *Queries) CompleteOrder(ctx context.Context, id int32) error {
 }
 
 const completeTicketByOrderID = `-- name: CompleteTicketByOrderID :exec
-UPDATE tickets SET status = 'done', updated_at = NOW()
+UPDATE tickets SET status = 'DONE', updated_at = NOW()
 WHERE order_id = $1
 `
 

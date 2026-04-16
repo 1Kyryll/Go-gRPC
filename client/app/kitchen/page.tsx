@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { getClientToken } from "@/lib/user";
 
 type Order = {
   id: number;
@@ -21,7 +22,11 @@ export default function KitchenPage() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource(KITCHEN_STREAM_URL);
+    const token = getClientToken();
+    const streamUrl = token
+      ? `${KITCHEN_STREAM_URL}?access_token=${encodeURIComponent(token)}`
+      : KITCHEN_STREAM_URL;
+    const eventSource = new EventSource(streamUrl);
 
     eventSource.onopen = () => setConnected(true);
 
@@ -39,8 +44,10 @@ export default function KitchenPage() {
   async function handleDone(orderId: number) {
     setCompleting(orderId);
     try {
+      const token = getClientToken();
       const res = await fetch(`${KITCHEN_API_URL}/order/${orderId}/done`, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));

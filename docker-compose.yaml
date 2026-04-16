@@ -32,6 +32,7 @@ services:
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
       ORDERS_GRPC_ADDR: orders:9000
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8081:8081"
     depends_on:

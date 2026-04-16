@@ -19,6 +19,7 @@ type AuthResponse = {
     username: string;
     email: string;
     phone?: string;
+    role: string; 
   };
 };
 
@@ -43,6 +44,7 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
             username
             email
             phone
+            role
           }
         }
       }`,
@@ -51,7 +53,7 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
 
     const cookieStore = await cookies();
     cookieStore.set("token", data.login.authToken.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
@@ -97,6 +99,7 @@ export async function registerAction(formData: FormData): Promise<AuthResult> {
             username
             email
             phone
+            role
           }
         }
       }`,
@@ -105,7 +108,7 @@ export async function registerAction(formData: FormData): Promise<AuthResult> {
 
     const cookieStore = await cookies();
     cookieStore.set("token", data.register.authToken.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
