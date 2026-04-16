@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function proxy(request: NextRequest) {
@@ -13,6 +14,18 @@ export async function proxy(request: NextRequest) {
     }
 
     return NextResponse.next();
+}
+
+export async function getCurrentUser() {
+    const cookiesStore = await cookies();
+    const user = cookiesStore.get("user")?.value; 
+
+    if (!user) return;
+
+    const decoded = decodeURIComponent(user);
+    const parsed = JSON.parse(decoded); 
+
+    return parsed; 
 }
 
 export const config = {

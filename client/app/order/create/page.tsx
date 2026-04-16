@@ -171,23 +171,6 @@ export default function CreateOrderPage() {
             )}
 
             <form action={handleSubmit} className="mt-6 space-y-4">
-              <div>
-                <label
-                  htmlFor="user_id"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  User ID
-                </label>
-                <input
-                  type="number"
-                  id="user_id"
-                  name="user_id"
-                  placeholder="Enter your user ID"
-                  required
-                  min={1}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                />
-              </div>
               <button
                 type="submit"
                 disabled={loading}

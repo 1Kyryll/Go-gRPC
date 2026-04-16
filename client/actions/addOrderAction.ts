@@ -2,6 +2,7 @@
 
 import { OrderItem } from "@/lib/types";
 import { gql } from "@/lib/graphql";
+import { getCurrentUser } from "@/proxy";
 
 type CreateOrderResult = {
   success: boolean;
@@ -13,10 +14,12 @@ export const addOrderAction = async (
   formData: FormData,
   items: OrderItem[]
 ): Promise<CreateOrderResult> => {
-  const user_id = formData.get("user_id") as string;
+  const user = await getCurrentUser(); 
+
+  const user_id = user?.id;
 
   if (!user_id) {
-    return { success: false, errors: [{ field: "userId", message: "User ID is required" }] };
+    return { success: false, errors: [{ field: "userId", message: "Unauthorized user" }] };
   }
 
   if (items.length === 0) {
