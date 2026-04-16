@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/dataloaders"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )

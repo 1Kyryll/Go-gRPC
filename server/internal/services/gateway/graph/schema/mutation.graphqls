@@ -1,4 +1,6 @@
 type Mutation {
+    register(input: RegisterInput!): AuthResponse!
+    login(input: LoginInput!): AuthResponse!
     createOrder(input: CreateOrderInput!): CreateOrderPayload!
     updateOrderStatus(id: ID!, status: OrderStatus!): Order!
     completeOrder(orderId: ID!): Order!

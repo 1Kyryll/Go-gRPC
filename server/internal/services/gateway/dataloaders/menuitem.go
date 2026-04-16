@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/graph-gophers/dataloader/v7"
 )
 

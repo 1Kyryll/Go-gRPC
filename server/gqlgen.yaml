@@ -39,6 +39,8 @@ models:
       subtotal:
         resolver: true
   User:
+    model:
+      - github.com/1kyryll/go-grpc/internal/services/gateway/graph/model.User
     fields:
       orders:
         resolver: true

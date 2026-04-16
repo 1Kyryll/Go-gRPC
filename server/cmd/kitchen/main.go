@@ -14,9 +14,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/kitchen"
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/gen/kitchen"
+	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	kitchenHandlers "github.com/1kyryll/go-grpc/internal/services/kitchen/handlers"
 	kitchenService "github.com/1kyryll/go-grpc/internal/services/kitchen/services"
 	"google.golang.org/grpc"

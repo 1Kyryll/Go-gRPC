@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/1kyryll/go-grpc/internal/services/kitchen/types"
-	"github.com/1kyryll/go-grpc/internal/services/util"
+	"github.com/1kyryll/go-grpc/internal/util"
 )
 
 type KitchenHTTPHandler struct {

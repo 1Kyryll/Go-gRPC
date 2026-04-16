@@ -6,14 +6,16 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/common/gen/user"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
 
 type Resolver struct {
-	queries    *sqlc.Queries
-	grpcClient orders.OrderServiceClient
+	queries        *sqlc.Queries
+	grpcClient     orders.OrderServiceClient
+	userGrpcClient user.UserServiceClient
 
 	// For subscriptions
 	mu                sync.Mutex
@@ -21,10 +23,11 @@ type Resolver struct {
 	statusSubscribers map[chan *orders.Order]struct{}
 }
 
-func NewResolver(queries *sqlc.Queries, grpcClient orders.OrderServiceClient) *Resolver {
+func NewResolver(queries *sqlc.Queries, grpcClient orders.OrderServiceClient, userGrpcClient user.UserServiceClient) *Resolver {
 	return &Resolver{
 		queries:           queries,
 		grpcClient:        grpcClient,
+		userGrpcClient:    userGrpcClient,
 		orderSubscribers:  make(map[chan *orders.Order]struct{}),
 		statusSubscribers: make(map[chan *orders.Order]struct{}),
 	}

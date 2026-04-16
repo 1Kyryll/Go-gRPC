@@ -3,8 +3,8 @@ package types
 import (
 	"context"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/kitchen"
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/gen/kitchen"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 )
 
 type TicketService interface {

@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/kitchen"
+	"github.com/1kyryll/go-grpc/internal/common/gen/kitchen"
 	"github.com/1kyryll/go-grpc/internal/services/kitchen/types"
 	"google.golang.org/grpc"
 )

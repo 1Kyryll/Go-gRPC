@@ -2,24 +2,27 @@ package model
 
 import (
 	"fmt"
+	"os"
 	"time"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Custom Order with internal UserID for DataLoader resolution.
 // Overrides the gqlgen-generated Order so we can carry the DB foreign key.
 type Order struct {
-	ID     string    `json:"id"`
-	UserID int32     `json:"-"`
-	User   *User     `json:"user"`
+	ID         string       `json:"id"`
+	UserID     int32        `json:"-"`
+	User       *User        `json:"user"`
 	Items      []*OrderItem `json:"items"`
-	Ticket     *Ticket     `json:"ticket,omitempty"`
-	TotalPrice float64     `json:"totalPrice"`
-	Status     OrderStatus `json:"status"`
-	CreatedAt  time.Time   `json:"createdAt"`
-	UpdatedAt  time.Time   `json:"updatedAt"`
+	Ticket     *Ticket      `json:"ticket,omitempty"`
+	TotalPrice float64      `json:"totalPrice"`
+	Status     OrderStatus  `json:"status"`
+	CreatedAt  time.Time    `json:"createdAt"`
+	UpdatedAt  time.Time    `json:"updatedAt"`
 }
 
 func (Order) IsSearchResult() {}
@@ -118,4 +121,57 @@ func TextToStringPtr(t pgtype.Text) *string {
 // StringToText converts a Go string to pgtype.Text.
 func StringToText(s string) pgtype.Text {
 	return pgtype.Text{String: s, Valid: s != ""}
+}
+
+type User struct {
+	ID             string     `json:"id"`
+	Username       string     `json:"username"`
+	Email          string     `json:"email"`
+	Phone          *string    `json:"phone,omitempty"`
+	HashedPassword string     `json:"-"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	DeletedAt      *time.Time `json:"-"`
+}
+
+func (User) IsSearchResult() {}
+
+func (u *User) HashPassword(password string) error {
+	bytePassword := []byte(password)
+	passwordHash, err := bcrypt.GenerateFromPassword(bytePassword, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	u.HashedPassword = string(passwordHash)
+
+	return nil
+}
+
+func (u *User) GenToken() (*AuthToken, error) {
+	expiredAt := time.Now().Add(time.Hour * 24 * 7)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"ExpiresAt": expiredAt.Unix(),
+		"Id":        u.ID,
+		"IssuedAt":  time.Now().Unix(),
+		"Issuer":    "Restaurant",
+	})
+
+	accessToken, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthToken{
+		AccessToken: accessToken,
+		ExpiredAt:   expiredAt,
+	}, nil
+}
+
+func (u *User) ComparePassword(password string) error {
+	bytePassword := []byte(password)
+	byteHashedPassword := []byte(u.HashedPassword)
+
+	return bcrypt.CompareHashAndPassword(byteHashedPassword, bytePassword)
 }

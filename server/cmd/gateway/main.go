@@ -13,8 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/common/gen/user"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/middleware"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/dataloaders"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph"
 	"google.golang.org/grpc"
@@ -32,19 +34,30 @@ func main() {
 
 	queries := sqlc.New(pool)
 
-	grpcAddr := os.Getenv("ORDERS_GRPC_ADDR")
-	if grpcAddr == "" {
-		grpcAddr = ":9000"
+	ordersAddr := os.Getenv("ORDERS_GRPC_ADDR")
+	if ordersAddr == "" {
+		ordersAddr = ":9000"
 	}
-	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	ordersConn, err := grpc.NewClient(ordersAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to Orders gRPC server: %v", err)
 	}
-	defer conn.Close()
+	defer ordersConn.Close()
 
-	grpcClient := orders.NewOrderServiceClient(conn)
+	userAddr := os.Getenv("USER_GRPC_ADDR")
+	if userAddr == "" {
+		userAddr = ":9001"
+	}
+	userConn, err := grpc.NewClient(userAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to User gRPC server: %v", err)
+	}
+	defer userConn.Close()
 
-	resolver := graph.NewResolver(queries, grpcClient)
+	grpcClient := orders.NewOrderServiceClient(ordersConn)
+	userGrpcClient := user.NewUserServiceClient(userConn)
+
+	resolver := graph.NewResolver(queries, grpcClient, userGrpcClient)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{
 		Resolvers: resolver,
@@ -72,7 +85,7 @@ func main() {
 
 	log.Printf("GraphQL gateway running on :%s", port)
 	log.Printf("Playground: http://localhost:%s/", port)
-	if err := http.ListenAndServe(":"+port, cors(mux)); err != nil {
+	if err := http.ListenAndServe(":"+port, middleware.AuthMiddleware()(cors(mux))); err != nil {
 		log.Fatalf("Gateway server failed: %v", err)
 	}
 }
@@ -81,7 +94,7 @@ func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return

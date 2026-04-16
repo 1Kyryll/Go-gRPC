@@ -24,6 +24,16 @@ type SearchResult interface {
 	IsSearchResult()
 }
 
+type AuthResponse struct {
+	AuthToken *AuthToken `json:"authToken"`
+	User      *User      `json:"user"`
+}
+
+type AuthToken struct {
+	AccessToken string    `json:"accessToken"`
+	ExpiredAt   time.Time `json:"expiredAt"`
+}
+
 type CreateOrderInput struct {
 	UserID string            `json:"userId"`
 	Items  []*OrderItemInput `json:"items"`
@@ -74,6 +84,11 @@ func (this FoodItem) GetIsAvailable() bool      { return this.IsAvailable }
 
 func (FoodItem) IsSearchResult() {}
 
+type LoginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type MenuItemConnection struct {
 	Edges      []*MenuItemEdge `json:"edges"`
 	PageInfo   *PageInfo       `json:"pageInfo"`
@@ -115,20 +130,15 @@ type PageInfo struct {
 type Query struct {
 }
 
+type RegisterInput struct {
+	Username string  `json:"username"`
+	Email    string  `json:"email"`
+	Password string  `json:"password"`
+	Phone    *string `json:"phone,omitempty"`
+}
+
 type Subscription struct {
 }
-
-type User struct {
-	ID        string           `json:"id"`
-	Username  string           `json:"username"`
-	Email     string           `json:"email"`
-	Phone     *string          `json:"phone,omitempty"`
-	Orders    *OrderConnection `json:"orders"`
-	CreatedAt time.Time        `json:"createdAt"`
-	UpdatedAt time.Time        `json:"updatedAt"`
-}
-
-func (User) IsSearchResult() {}
 
 type ValidationError struct {
 	Field   string `json:"field"`

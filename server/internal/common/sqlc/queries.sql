@@ -53,7 +53,11 @@ WHERE id = $1;
 SELECT * FROM users
 WHERE id = ANY($1::int[]);
 
--- name: SearchUsers :many 
+-- name: GetUserByUsername :one
+SELECT * FROM users
+WHERE username = $1;
+
+-- name: SearchUsers :many
 SELECT * FROM users
 WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%';
 

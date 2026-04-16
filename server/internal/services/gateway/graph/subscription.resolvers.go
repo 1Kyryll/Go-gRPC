@@ -11,7 +11,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
 

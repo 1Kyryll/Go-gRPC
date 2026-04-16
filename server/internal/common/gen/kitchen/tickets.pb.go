@@ -276,7 +276,7 @@ const file_tickets_proto_rawDesc = "" +
 	"\atickets\x18\x01 \x03(\v2\x0f.kitchen.TicketR\atickets2\xbe\x01\n" +
 	"\rTicketService\x12K\n" +
 	"\fCreateTicket\x12\x1c.kitchen.CreateTicketRequest\x1a\x1d.kitchen.CreateTicketResponse\x12`\n" +
-	"\x13GetTicketsByOrderID\x12#.kitchen.GetTicketsByOrderIDRequest\x1a$.kitchen.GetTicketsByOrderIDResponseBAZ?github.com/1kyryll/go-grpc/internal/services/common/gen/kitchenb\x06proto3"
+	"\x13GetTicketsByOrderID\x12#.kitchen.GetTicketsByOrderIDRequest\x1a$.kitchen.GetTicketsByOrderIDResponseB8Z6github.com/1kyryll/go-grpc/internal/common/gen/kitchenb\x06proto3"
 
 var (
 	file_tickets_proto_rawDescOnce sync.Once

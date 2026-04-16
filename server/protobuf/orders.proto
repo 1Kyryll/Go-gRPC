@@ -1,6 +1,6 @@
 syntax = "proto3";    
 package orders;
-option go_package = "github.com/1kyryll/go-grpc/internal/services/common/gen/orders";
+option go_package = "github.com/1kyryll/go-grpc/internal/common/gen/orders";
 
 service OrderService {
     rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);

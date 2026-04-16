@@ -9,11 +9,78 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/gen/orders"
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
+	"github.com/1kyryll/go-grpc/internal/common/gen/user"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/1kyryll/go-grpc/internal/services/gateway/graph/model"
 )
+
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthResponse, error) {
+	phone := ""
+	if input.Phone != nil {
+		phone = *input.Phone
+	}
+
+	resp, err := r.userGrpcClient.Register(ctx, &user.RegisterRequest{
+		Username: input.Username,
+		Email:    input.Email,
+		Password: input.Password,
+		Phone:    phone,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("registration failed: %w", err)
+	}
+
+	var phonePtr *string
+	if resp.User.Phone != "" {
+		phonePtr = &resp.User.Phone
+	}
+
+	return &model.AuthResponse{
+		AuthToken: &model.AuthToken{
+			AccessToken: resp.AccessToken,
+			ExpiredAt:   time.Unix(resp.ExpiredAt, 0),
+		},
+		User: &model.User{
+			ID:       fmt.Sprintf("%d", resp.User.Id),
+			Username: resp.User.Username,
+			Email:    resp.User.Email,
+			Phone:    phonePtr,
+		},
+	}, nil
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthResponse, error) {
+	resp, err := r.userGrpcClient.Login(ctx, &user.LoginRequest{
+		Username: input.Username,
+		Password: input.Password,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("login failed: %w", err)
+	}
+
+	var phonePtr *string
+	if resp.User.Phone != "" {
+		phonePtr = &resp.User.Phone
+	}
+
+	return &model.AuthResponse{
+		AuthToken: &model.AuthToken{
+			AccessToken: resp.AccessToken,
+			ExpiredAt:   time.Unix(resp.ExpiredAt, 0),
+		},
+		User: &model.User{
+			ID:       fmt.Sprintf("%d", resp.User.Id),
+			Username: resp.User.Username,
+			Email:    resp.User.Email,
+			Phone:    phonePtr,
+		},
+	}, nil
+}
 
 // CreateOrder is the resolver for the createOrder field.
 func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOrderInput) (*model.CreateOrderPayload, error) {

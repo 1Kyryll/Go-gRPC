@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/1kyryll/go-grpc/internal/services/common/sqlc"
+	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 )
 
 type ctxKey string

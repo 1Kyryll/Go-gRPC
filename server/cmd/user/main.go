@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
-	handler "github.com/1kyryll/go-grpc/internal/services/orders/handlers"
-	service "github.com/1kyryll/go-grpc/internal/services/orders/services"
+	handler "github.com/1kyryll/go-grpc/internal/services/user/handlers"
+	service "github.com/1kyryll/go-grpc/internal/services/user/services"
 	"google.golang.org/grpc"
 )
 
@@ -25,23 +25,23 @@ func main() {
 	defer pool.Close()
 
 	queries := sqlc.New(pool)
-	ordersService := service.NewOrdersService(queries)
+	userService := service.NewUserService(queries)
 
-	// Start gRPC server for Kitchen
+	// Start gRPC server
 	go func() {
-		lis, err := net.Listen("tcp", ":9000")
+		lis, err := net.Listen("tcp", ":9001")
 		if err != nil {
-			log.Fatalf("Failed to listen on :9000: %v", err)
+			log.Fatalf("Failed to listen on :9001: %v", err)
 		}
 		grpcServer := grpc.NewServer()
-		handler.NewOrdersGrpcService(grpcServer, ordersService)
-		log.Println("gRPC server is running on :9000")
+		handler.NewUserGrpcService(grpcServer, userService)
+		log.Println("User gRPC server is running on :9001")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
 	}()
 
-	// Start HTTP server for frontend
-	httpServer := NewHTTPServer(":8080", ordersService)
+	// Start HTTP server
+	httpServer := NewHTTPServer(":8083", userService)
 	httpServer.Run()
 }

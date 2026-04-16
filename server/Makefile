@@ -1,7 +1,7 @@
 export PATH := $(PATH):$(shell go env GOPATH)/bin
 
 proto:
-	-rd /s /q internal\services\common\gen 2>nul
+	-rd /s /q internal\common\gen 2>nul
 	protoc \
 		--proto_path=protobuf \
 		--go_out=. \

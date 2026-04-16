@@ -1,6 +1,6 @@
 syntax = "proto3";
 package kitchen;
-option go_package = "github.com/1kyryll/go-grpc/internal/services/common/gen/kitchen";
+option go_package = "github.com/1kyryll/go-grpc/internal/common/gen/kitchen";
 
 service TicketService {
     rpc CreateTicket (CreateTicketRequest) returns (CreateTicketResponse);
