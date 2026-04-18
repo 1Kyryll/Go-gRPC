@@ -16,4 +16,4 @@ CREATE INDEX idx_outbox_unpublished ON outbox (id) WHERE published_at IS NULL;
 -- +goose StatementBegin 
 DROP INDEX IF EXISTS idx_outbox_unpublished; 
 DROP TABLE IF EXISTS outbox; 
--- +goose StaementEnd
+-- +goose StatementEnd
