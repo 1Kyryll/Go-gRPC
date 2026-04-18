@@ -2,26 +2,21 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/segmentio/kafka-go"
 
-	"github.com/1kyryll/go-grpc/internal/common/gen/kitchen"
-	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/1kyryll/go-grpc/internal/middleware"
 	kitchenHandlers "github.com/1kyryll/go-grpc/internal/services/kitchen/handlers"
 	kitchenService "github.com/1kyryll/go-grpc/internal/services/kitchen/services"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // enrichedOrder is what we broadcast over SSE — the gRPC Order enriched with item names.
@@ -45,105 +40,30 @@ func main() {
 	queries := sqlc.New(pool)
 	svc := kitchenService.NewKitchenService(queries)
 
-	// Connect to Orders gRPC server
-	grpcAddr := os.Getenv("ORDERS_GRPC_ADDR")
-	if grpcAddr == "" {
-		grpcAddr = ":9000"
+	// Set up Kafka consumer
+	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
+	if kafkaBrokers == "" {
+		kafkaBrokers = "localhost:9092"
 	}
-	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Failed to connect to Orders gRPC server: %v", err)
-	}
-	defer conn.Close()
 
-	client := orders.NewOrderServiceClient(conn)
-	log.Printf("Kitchen connecting to Orders service on %s", grpcAddr)
-
-	var stream orders.OrderService_StreamCreatedOrdersClient
-	for {
-		stream, err = client.StreamCreatedOrders(context.Background(),
-			&orders.StreamCreatedOrdersRequest{})
-		if err == nil {
-			break
-		}
-		log.Printf("Waiting for Orders gRPC server: %v", err)
-		time.Sleep(2 * time.Second)
-	}
-	log.Println("Kitchen connected to Orders stream")
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  strings.Split(kafkaBrokers, ","),
+		Topic:    "orders.events",
+		GroupID:  "kitchen-service",
+		MinBytes: 1,
+		MaxBytes: 10e6,
+	})
+	defer reader.Close()
 
 	// Create SSE server
 	sse := NewSSEServer()
 
-	// Receive orders from gRPC stream, create ticket, broadcast to SSE
-	go func() {
-		for {
-			order, err := stream.Recv()
-			if err == io.EOF {
-				log.Println("Stream closed by server")
-				return
-			}
-			if err != nil {
-				log.Printf("Error receiving order: %v", err)
-				return
-			}
+	// Consume order events from Kafka
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			log.Printf("NEW ORDER: id=%d user=%d status=%s",
-				order.Id, order.CustomerId, order.Status)
-
-			// Create a ticket for this order
-			ticket := &kitchen.Ticket{
-				OrderId: order.Id,
-				Status:  "OPEN",
-			}
-			if _, err := svc.CreateTicket(context.Background(), ticket); err != nil {
-				log.Printf("Failed to create ticket for order %d: %v", order.Id, err)
-			}
-
-			// Enrich the order with item names from the database
-			enriched := enrichedOrder{
-				ID:     order.Id,
-				UserID: order.CustomerId,
-				Status: order.Status,
-				Items:  []string{},
-			}
-
-			orderItems, err := queries.GetOrderItemsByOrderIDs(context.Background(), []int32{order.Id})
-			if err != nil {
-				log.Printf("Failed to fetch items for order %d: %v", order.Id, err)
-			} else {
-				// Collect menu item IDs to fetch names
-				menuIDs := make([]int32, len(orderItems))
-				for i, oi := range orderItems {
-					menuIDs[i] = oi.MenuItemID
-				}
-
-				menuItems, err := queries.GetMenuItemsByIDs(context.Background(), menuIDs)
-				if err != nil {
-					log.Printf("Failed to fetch menu items: %v", err)
-				} else {
-					// Build name lookup
-					nameMap := make(map[int32]string, len(menuItems))
-					for _, mi := range menuItems {
-						nameMap[mi.ID] = mi.Name
-					}
-
-					for _, oi := range orderItems {
-						name := nameMap[oi.MenuItemID]
-						if name == "" {
-							name = fmt.Sprintf("Item #%d", oi.MenuItemID)
-						}
-						if oi.Quantity > 1 {
-							enriched.Items = append(enriched.Items, fmt.Sprintf("%s x%d", name, oi.Quantity))
-						} else {
-							enriched.Items = append(enriched.Items, name)
-						}
-					}
-				}
-			}
-
-			sse.Broadcast(enriched)
-		}
-	}()
+	go consumeOrderEvents(ctx, reader, queries, sse)
+	log.Println("Kitchen Kafka consumer started on topic orders.events")
 
 	// Start HTTP server with CORS: SSE + ticket endpoints
 	mux := http.NewServeMux()
@@ -163,6 +83,7 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	log.Println("Kitchen service is running. Press Ctrl+C to exit.")
 	<-sig
+	cancel()
 }
 
 func cors(next http.Handler) http.Handler {
