@@ -57,6 +57,7 @@ func (r *OutboxRelay) publishPending(ctx context.Context) {
 		}
 		if err := r.writer.WriteMessages(ctx, msg); err != nil {
 			log.Printf("Outbox failed to publish event %d: %v", event.ID, err)
+			return
 		}
 		if err := r.queries.MarkOutboxEventPublished(ctx, event.ID); err != nil {
 			log.Printf("Outbox failed to mark event %d as published: %v", event.ID, err)

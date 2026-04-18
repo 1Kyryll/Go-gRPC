@@ -48,7 +48,7 @@ func main() {
 	// Start outbox relay (publishes to Kafka)
 	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
 	if kafkaBrokers == "" {
-		kafkaBrokers = "loclahost:9092"
+		kafkaBrokers = "localhost:9092"
 	}
 	relay := outbox.NewOutboxRelay(queries, strings.Split(kafkaBrokers, ","))
 

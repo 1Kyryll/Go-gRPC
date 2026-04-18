@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
@@ -19,6 +20,7 @@ func consumeOrderEvents(ctx context.Context, reader *kafka.Reader, queries *sqlc
 				return
 			}
 			log.Printf("Kafka consumer failed to fetch message: %v", err)
+			time.Sleep(2 * time.Second)
 			continue
 		}
 

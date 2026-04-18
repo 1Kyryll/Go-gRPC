@@ -8,6 +8,7 @@ import (
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/proto"
 )
 
 type OrdersService struct {
@@ -55,6 +56,32 @@ func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrder
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Write outbox event in the same transaction
+	event := &orders.OrderEvent{
+		EventType:  "ORDER_CREATED",
+		OrderId:    orderRow.ID,
+		CustomerId: req.CustomerId,
+		Status:     orderRow.Status,
+		Items:      req.Items,
+	}
+	payload, err := proto.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	err = txQueries.InsertOutboxEvent(ctx, sqlc.InsertOutboxEventParams{
+		AggregateID: orderRow.ID,
+		EventType:   "ORDER_CREATED",
+		Payload:     payload,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
 	order := &orders.Order{
