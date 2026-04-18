@@ -25,7 +25,7 @@ func main() {
 	defer pool.Close()
 
 	queries := sqlc.New(pool)
-	ordersService := service.NewOrdersService(queries)
+	ordersService := service.NewOrdersService(pool, queries)
 
 	// Start gRPC server for Kitchen
 	go func() {

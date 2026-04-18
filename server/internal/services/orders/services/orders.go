@@ -7,23 +7,34 @@ import (
 	"github.com/1kyryll/go-grpc/internal/common/gen/orders"
 	"github.com/1kyryll/go-grpc/internal/common/sqlc"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type OrdersService struct {
 	mu          sync.Mutex
+	pool        *pgxpool.Pool
 	queries     *sqlc.Queries
 	subscribers map[chan *orders.Order]struct{}
 }
 
-func NewOrdersService(queries *sqlc.Queries) *OrdersService {
+func NewOrdersService(pool *pgxpool.Pool, queries *sqlc.Queries) *OrdersService {
 	return &OrdersService{
+		pool:        pool,
 		queries:     queries,
 		subscribers: make(map[chan *orders.Order]struct{}),
 	}
 }
 
 func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrderRequest) (*orders.Order, error) {
-	orderRow, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	txQueries := sqlc.New(tx)
+
+	orderRow, err := txQueries.CreateOrder(ctx, sqlc.CreateOrderParams{
 		UserID: req.CustomerId,
 		Status: "PENDING",
 	})
@@ -32,7 +43,7 @@ func (s *OrdersService) CreateOrder(ctx context.Context, req *orders.CreateOrder
 	}
 
 	for _, item := range req.Items {
-		_, err := s.queries.CreateOrderItem(ctx, sqlc.CreateOrderItemParams{
+		_, err := txQueries.CreateOrderItem(ctx, sqlc.CreateOrderItemParams{
 			OrderID:    orderRow.ID,
 			MenuItemID: item.MenuItemId,
 			Quantity:   item.Quantity,
