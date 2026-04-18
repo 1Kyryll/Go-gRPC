@@ -10,7 +10,21 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+  kafka:
+    image: apache/kafka:latest
+    container_name: RSM-Kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - kafka_data:/apache/kafka
   orders:
     build:
       context: ./server
@@ -18,11 +32,13 @@ services:
     container_name: RSM-Orders
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
+      KAFKA_BROKERS: kafka:9092
     ports:
       - "8080:8080"
       - "9000:9000"
     depends_on:
       - postgres
+      - kafka
 
   kitchen:
     build:
@@ -31,13 +47,13 @@ services:
     container_name: RSM-Kitchen
     environment:
       GOOSE_DBSTRING: host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable
-      ORDERS_GRPC_ADDR: orders:9000
       JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BROKERS: kafka:9092
     ports:
       - "8081:8081"
     depends_on:
       - postgres
-      - orders
+      - kafka
 
   user:
     build:
@@ -87,3 +103,4 @@ services:
 
 volumes:
   postgres_data:
+  kafka_data:
