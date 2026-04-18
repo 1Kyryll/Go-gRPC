@@ -12,14 +12,21 @@ A real-time restaurant order management system built with a microservices archit
 │              │                      │              │                      │  :8080/:9000 │
 └──────────────┘                      └──────┬───────┘                      └──────┬───────┘
                                              │                                     │
-                                        gRPC │                              gRPC stream
+                                        gRPC │                              outbox relay
                                              │                                     │
                                       ┌──────▼───────┐                      ┌──────▼───────┐
-                                      │              │         SSE          │              │
-                                      │    User      │                      │   Kitchen    │
-                                      │   Service    │                      │   Service    │
-                                      │ :8083/:9001  │                      │    :8081     │
-                                      └──────────────┘                      └──────────────┘
+                                      │              │                      │              │
+                                      │    User      │                      │    Kafka     │
+                                      │   Service    │                      │  (KRaft)     │
+                                      │ :8083/:9001  │                      │    :9092     │
+                                      └──────────────┘                      └──────┬───────┘
+                                                                                   │
+                                                                            ┌──────▼───────┐
+                                                                            │              │
+                                                                     SSE    │   Kitchen    │
+                                                                            │   Service    │
+                                                                            │    :8081     │
+                                                                            └──────┬───────┘
                                                                                    │
                                                                             ┌──────▼───────┐
                                                                             │  PostgreSQL  │
@@ -33,17 +40,20 @@ A real-time restaurant order management system built with a microservices archit
 |---------|---------|-------------|
 | **Client** | `:3000` | Next.js 16 frontend with menu browsing, cart, order placement, order tracking, and kitchen dashboard |
 | **Gateway** | `:8082` | GraphQL API with queries, mutations, and WebSocket subscriptions. Aggregates data via dataloaders. Handles auth via JWT |
-| **Orders** | `:8080` (HTTP) `:9000` (gRPC) | Core order service. Stores orders in PostgreSQL and broadcasts new orders via gRPC server streaming |
-| **Kitchen** | `:8081` | Receives orders from the gRPC stream, creates kitchen tickets, and pushes enriched order data to the dashboard via SSE. Protected by JWT auth (kitchen staff only) |
+| **Orders** | `:8080` (HTTP) `:9000` (gRPC) | Core order service. Stores orders in PostgreSQL, writes events to a transactional outbox, and relays them to Kafka. Also broadcasts via gRPC streaming for Gateway subscriptions |
+| **Kitchen** | `:8081` | Consumes order events from Kafka, creates kitchen tickets idempotently, and pushes enriched order data to the dashboard via SSE. Protected by JWT auth (kitchen staff only) |
 | **User** | `:8083` (HTTP) `:9001` (gRPC) | Handles user registration, login, and JWT token generation with role-based claims |
-| **PostgreSQL** | `:5433` | Shared database for orders, users, menu items, and tickets |
+| **Kafka** | `:9092` (internal) `:9094` (external) | Apache Kafka in KRaft mode. Topic `orders.events` carries order events keyed by `order_id` with Protobuf payloads |
+| **Kafka UI** | `:8090` | Web dashboard for inspecting Kafka topics, messages, and consumer groups |
+| **PostgreSQL** | `:5433` | Shared database for orders, users, menu items, tickets, and the outbox table |
 
 ### Communication Patterns
 
 - **Client <-> Gateway**: GraphQL queries/mutations over HTTP, real-time status updates via WebSocket subscriptions (`graphql-transport-ws`)
-- **Gateway <-> Orders**: gRPC for order creation and streaming
+- **Gateway <-> Orders**: gRPC for order creation; gRPC server streaming for `orderCreated` subscriptions
 - **Gateway <-> User**: gRPC for registration, login, and user lookup
-- **Orders -> Kitchen**: gRPC server streaming broadcasts new orders in real-time
+- **Orders -> Kafka**: Transactional outbox pattern — order events are written to an `outbox` table in the same DB transaction as the order, then a relay goroutine publishes them to Kafka topic `orders.events`
+- **Kafka -> Kitchen**: Kitchen service consumes from `orders.events` (consumer group: `kitchen-service`), creates tickets idempotently (`ON CONFLICT DO NOTHING`), and enriches orders with menu item names
 - **Kitchen -> Client**: Server-Sent Events (SSE) push enriched order data to the kitchen dashboard
 
 ## Authentication & Authorization
@@ -89,10 +99,11 @@ JWT_SECRET=your_jwt_secret_here
 docker compose up -d
 ```
 
-This starts all six services. Visit:
+This starts all services. Visit:
 - **Menu & ordering**: http://localhost:3000
 - **Kitchen dashboard**: http://localhost:3000/kitchen
 - **GraphQL playground**: http://localhost:8082
+- **Kafka UI**: http://localhost:8090
 
 ### Local Development
 
@@ -205,6 +216,7 @@ All endpoints require `KITCHEN_STAFF` role via JWT.
 - **Go** — gRPC, protobuf, net/http, gqlgen (GraphQL), JWT (golang-jwt), bcrypt
 - **PostgreSQL** — pgxpool, sqlc (type-safe queries), goose (migrations)
 - **Next.js 16** — React 19, Tailwind CSS 4, Server Components, Server Actions
+- **Messaging** — Apache Kafka (KRaft mode), transactional outbox pattern, `segmentio/kafka-go`
 - **Real-time** — gRPC server streaming, GraphQL subscriptions (WebSocket), SSE
 - **Auth** — JWT (HS256) with role-based access control, bcrypt password hashing
-- **Infrastructure** — Docker multi-stage builds, Docker Compose
+- **Infrastructure** — Docker multi-stage builds, Docker Compose, Kafka UI
