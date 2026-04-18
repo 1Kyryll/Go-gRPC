@@ -20,6 +20,14 @@ message Order {
     string status = 3;
 }
 
+message OrderEvent { 
+    string event_type = 1; 
+    int32 order_id = 2; 
+    int32 customer_id = 3; 
+    string status = 4; 
+    repeated OrderItemInput items = 5; 
+}
+
 message StreamCreatedOrdersRequest {}
 
 message CreateOrderRequest {
