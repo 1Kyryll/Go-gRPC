@@ -166,6 +166,22 @@ func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (Cre
 	return i, err
 }
 
+const createTicketsIdempotent = `-- name: CreateTicketsIdempotent :exec
+INSERT INTO tickets (order_id, status)
+VALUES ($1, $2)
+ON CONFLICT (order_id) DO NOTHING
+`
+
+type CreateTicketsIdempotentParams struct {
+	OrderID int32  `json:"order_id"`
+	Status  string `json:"status"`
+}
+
+func (q *Queries) CreateTicketsIdempotent(ctx context.Context, arg CreateTicketsIdempotentParams) error {
+	_, err := q.db.Exec(ctx, createTicketsIdempotent, arg.OrderID, arg.Status)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (username, email, password_hash, phone, role)
@@ -533,6 +549,40 @@ func (q *Queries) GetTicketsByOrderIDs(ctx context.Context, dollar_1 []int32) ([
 	return items, nil
 }
 
+const getUnpublishedOutboxEvents = `-- name: GetUnpublishedOutboxEvents :many
+SELECT id, aggregate_id, event_type, payload, created_at, published_at FROM outbox 
+WHERE published_at IS NULL 
+ORDER BY id ASC
+LIMIT $1
+`
+
+func (q *Queries) GetUnpublishedOutboxEvents(ctx context.Context, limit int32) ([]Outbox, error) {
+	rows, err := q.db.Query(ctx, getUnpublishedOutboxEvents, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Outbox
+	for rows.Next() {
+		var i Outbox
+		if err := rows.Scan(
+			&i.ID,
+			&i.AggregateID,
+			&i.EventType,
+			&i.Payload,
+			&i.CreatedAt,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, username, email, password_hash, phone, created_at, updated_at, role FROM users
 WHERE id = $1
@@ -607,6 +657,34 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, dollar_1 []int32) ([]User, 
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertOutboxEvent = `-- name: InsertOutboxEvent :exec
+
+INSERT INTO outbox (aggregate_id, event_type, payload)
+VALUES ($1, $2, $3)
+`
+
+type InsertOutboxEventParams struct {
+	AggregateID int32  `json:"aggregate_id"`
+	EventType   string `json:"event_type"`
+	Payload     []byte `json:"payload"`
+}
+
+// Outbox
+func (q *Queries) InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error {
+	_, err := q.db.Exec(ctx, insertOutboxEvent, arg.AggregateID, arg.EventType, arg.Payload)
+	return err
+}
+
+const markOutboxEventPublished = `-- name: MarkOutboxEventPublished :exec
+UPDATE outbox SET published_at = NOW() 
+WHERE id = $1
+`
+
+func (q *Queries) MarkOutboxEventPublished(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, markOutboxEventPublished, id)
+	return err
 }
 
 const searchMenuItems = `-- name: SearchMenuItems :many

@@ -132,3 +132,25 @@ WHERE user_id = $1;
 -- name: SearchOrders :many
 SELECT * FROM orders
 WHERE CAST(id AS TEXT) ILIKE '%' || $1 || '%';
+
+-- Outbox 
+
+-- name: InsertOutboxEvent :exec 
+INSERT INTO outbox (aggregate_id, event_type, payload)
+VALUES ($1, $2, $3);
+
+-- name: GetUnpublishedOutboxEvents :many 
+SELECT * FROM outbox 
+WHERE published_at IS NULL 
+ORDER BY id ASC
+LIMIT $1; 
+
+-- name: MarkOutboxEventPublished :exec 
+UPDATE outbox SET published_at = NOW() 
+WHERE id = $1; 
+
+-- name: CreateTicketsIdempotent :exec 
+INSERT INTO tickets (order_id, status)
+VALUES ($1, $2)
+ON CONFLICT (order_id) DO NOTHING; 
+

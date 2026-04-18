@@ -36,6 +36,15 @@ type OrderItem struct {
 	SpecialInstructions pgtype.Text `json:"special_instructions"`
 }
 
+type Outbox struct {
+	ID          int64              `json:"id"`
+	AggregateID int32              `json:"aggregate_id"`
+	EventType   string             `json:"event_type"`
+	Payload     []byte             `json:"payload"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+}
+
 type Ticket struct {
 	ID        int32              `json:"id"`
 	OrderID   int32              `json:"order_id"`
