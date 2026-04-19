@@ -62,7 +62,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go consumeOrderEvents(ctx, reader, queries, sse)
+	go consumeOrderEvents(ctx, reader, svc, sse)
 	log.Println("Kitchen Kafka consumer started on topic orders.events")
 
 	// Start HTTP server with CORS: SSE + ticket endpoints
